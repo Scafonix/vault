@@ -159,4 +159,12 @@ This project is licensed under the [Business Source License 1.1 (BSL 1.1)](LICEN
 * **Non-Commercial & Self-Hosting:** Free for personal use, security audits, academic research, and self-hosted personal vaults.
 * **Commercial Services:** Commercial SaaS hosting or competitive services require a commercial license agreement.
 
+---
+
+## Contact & Inquiries
+
+For enterprise deployment, custom policy modules, security audits, or partnerships:
+* **Email:** [contact@scafonix.com](mailto:contact@scafonix.com)
+* **Website:** [scafonix.com](https://scafonix.com)
+
 Copyright (c) 2026 Scafonix. All rights reserved.
