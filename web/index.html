@@ -133,17 +133,6 @@
       font-size: 0.8rem;
       margin-bottom: 4px;
     }
-    .radio-option {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin-bottom: 8px;
-      font-size: 0.82rem;
-      cursor: pointer;
-    }
-    .radio-option input {
-      margin-top: 3px;
-    }
 
     input[type="text"], input[type="password"], textarea, select {
       width: 100%;
@@ -378,50 +367,72 @@
         Neither scafonix nor any user can modify, bypass, or relax this policy post-generation.
       </div>
 
-      <div class="form-row">
-        <label class="radio-option">
-          <input type="radio" name="policy_preset" value="daily" checked onchange="updatePolicyPreset()">
-          <div>
-            <strong>Daily Spending Limit</strong> — Max 0.1 ETH per transfer on Ethereum Mainnet.
-          </div>
-        </label>
-        <label class="radio-option">
-          <input type="radio" name="policy_preset" value="uniswap" onchange="updatePolicyPreset()">
-          <div>
-            <strong>Whitelisted DEX Router Only</strong> — Restricts smart contract calls strictly to Uniswap V3 SwapRouter.
-          </div>
-        </label>
-        <label class="radio-option">
-          <input type="radio" name="policy_preset" value="whitelist" onchange="updatePolicyPreset()">
-          <div>
-            <strong>Whitelisted Cold Wallet Only</strong> — Restricts native ETH transfers strictly to a designated cold wallet address.
-          </div>
-        </label>
-        <label class="radio-option">
-          <input type="radio" name="policy_preset" value="deny_contracts" onchange="updatePolicyPreset()">
-          <div>
-            <strong>Contract-Call Lockdown</strong> — Allows native ETH transfers, but explicitly <code>Deny</code> all smart contract calls.
-          </div>
-        </label>
-        <label class="radio-option">
-          <input type="radio" name="policy_preset" value="custom" onchange="updatePolicyPreset()">
-          <div>
-            <strong>Custom IAM Policy JSON</strong> — Define arbitrary AWS IAM-style statements.
-          </div>
-        </label>
-      </div>
+      <!-- Compact Searchable Policy Template Toolbar -->
+      <div style="border: 1px solid var(--border); background: var(--panel-bg); padding: 12px; margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 0.82rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <span>Choose a Policy Template:</span>
+          <span style="font-weight: normal; font-size: 0.74rem; color: var(--muted);" id="templateCountBadge">12 templates available</span>
+        </div>
 
-      <div class="form-row">
-        <label for="policyJsonInput">Canonical Policy Document (JSON):</label>
-        <textarea id="policyJsonInput" rows="8" spellcheck="false" oninput="onPolicyChanged()"></textarea>
-        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px; font-family: var(--mono);">
-          Deterministic Policy Hash (h_p): <span id="policyHashDisplay" style="color: #222; font-weight: bold;">-</span>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 140px;">
+            <select id="templateCategorySelect" onchange="filterTemplates()" style="font-size: 0.8rem; padding: 6px 8px;">
+              <option value="all">All Categories</option>
+              <option value="spending">Spending Limits</option>
+              <option value="whitelist">Whitelists & Recipients</option>
+              <option value="defi">DeFi & DEX Protocols</option>
+              <option value="network">Multi-Chain & L2s</option>
+              <option value="security">Defense-in-Depth & Deny</option>
+              <option value="starter">Custom Starter</option>
+            </select>
+          </div>
+          <div style="flex: 2; min-width: 200px;">
+            <input type="text" id="templateSearchInput" placeholder="Search templates (e.g. uniswap, whitelist, base, 0.1, deny)..." oninput="filterTemplates()" style="font-size: 0.8rem; padding: 6px 8px;">
+          </div>
+        </div>
+
+        <div>
+          <select id="templateSelect" onchange="onTemplateSelectChange()" style="font-size: 0.82rem; font-weight: 600; padding: 6px 8px;">
+            <!-- Options populated dynamically -->
+          </select>
+        </div>
+
+        <div id="templateDescBox" style="font-size: 0.77rem; color: #444; background: #ffffff; border: 1px solid var(--border); padding: 6px 10px; margin-top: 8px; line-height: 1.4;">
+          <strong id="templateTitleDisplay">Daily Spending Limit (0.1 ETH)</strong>: <span id="templateDescDisplay">Allows transfers up to 0.1 ETH per transaction on Ethereum Mainnet.</span>
         </div>
       </div>
 
+      <!-- Policy JSON Document Editor -->
+      <div class="form-row">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+          <label for="policyJsonInput" style="margin-bottom: 0;">Policy Document JSON (Freely Editable / Customizable):</label>
+          <span style="font-size: 0.74rem; color: #0b5cab; font-weight: 600;">[Directly Editable]</span>
+        </div>
+        <textarea id="policyJsonInput" rows="10" spellcheck="false" oninput="onPolicyChanged()"></textarea>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; flex-wrap: wrap; gap: 8px;">
+          <div style="font-size: 0.75rem; color: var(--muted); font-family: var(--mono);">
+            Deterministic Policy Hash (h_p): <span id="policyHashDisplay" style="color: #222; font-weight: bold;">-</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-secondary btn-sm" onclick="copyPolicyJson()">Copy Policy JSON</button>
+            <button class="btn btn-secondary btn-sm" onclick="resetCurrentTemplate()">Reset to Template</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Critical Backup & Record Reminder -->
+      <div class="notice" style="background: #fffdf5; border-color: #e0d090; color: #705510; font-size: 0.78rem; margin-top: 10px; line-height: 1.45;">
+        <strong>IMPORTANT POLICY BACKUP REQUIREMENT:</strong><br>
+        This security policy is cryptographically baked into Key Share B ($sk_B = sk_{B\_seed} + h_p$).
+        Once your vault is created, <strong>this policy can never be modified or relaxed</strong>.
+        You can customize addresses, amounts, and chain IDs above before generating.
+        <strong>Be sure to click "Copy Policy JSON" and save this policy document securely with your backup records!</strong>
+      </div>
+
       <!-- AWS IAM-Style Policy Specification Guide -->
-      <details open style="margin-top: 14px;">
-        <summary>AWS IAM Policy Syntax Specification & Guide (Click to collapse)</summary>
+      <details style="margin-top: 14px;">
+        <summary>AWS IAM Policy Syntax Specification & Guide (Click to expand)</summary>
         <div class="details-inner">
           <p style="margin: 0 0 8px 0; font-size: 0.8rem; line-height: 1.45;">
             scafonix Vault policies follow an <strong>AWS IAM-style JSON specification</strong>.
@@ -484,7 +495,7 @@
                 <td>
                   Specifies target address(es):<br>
                   • <code>*</code>: Any destination address.<br>
-                  • Hex address or prefixed URI for strict whitelisting.
+                  • Hex address or prefixed URI for strict whitelisting. Multiple addresses supported in array.
                 </td>
               </tr>
               <tr>
@@ -498,7 +509,7 @@
                 <td>
                   Conditional criteria for enforcement:<br>
                   • <code>NumericLessThanEquals</code> (<code>web3:ValueWei</code>): Caps maximum transfer value (Wei).<br>
-                  • <code>NumericEquals</code> (<code>web3:ChainId</code>): Enforces network chain ID (1 = Ethereum Mainnet, 11155111 = Sepolia, 137 = Polygon, 10 = Optimism, 42161 = Arbitrum, 8453 = Base).<br>
+                  • <code>NumericEquals</code> (<code>web3:ChainId</code>): Enforces network chain ID (1 = Ethereum Mainnet, 11155111 = Sepolia, 137 = Polygon, 10 = Optimism, 42161 = Arbitrum, 8453 = Base). If omitted, any chain is allowed.<br>
                   • <code>StringEquals</code> (<code>web3:Action</code>): Exact action match.
                 </td>
               </tr>
@@ -510,7 +521,8 @@
             • <strong>Budget Spending Cap:</strong> Allow transfers up to 0.1 ETH per tx on Mainnet.<br>
             • <strong>DEX Router Whitelisting:</strong> Allow contract calls exclusively to Uniswap V3 SwapRouter.<br>
             • <strong>Dedicated Cold Storage:</strong> Allow transfers only to a single whitelisted cold wallet address.<br>
-            • <strong>Contract Lockdown (Defense-in-Depth):</strong> Explicitly <code>Deny</code> all <code>web3:CallContract</code> transactions to protect against malicious approvals.
+            • <strong>Multi-Address Whitelist:</strong> Allow transfers to multiple trusted addresses across any chain.<br>
+            • <strong>Contract Lockdown (Anti-Drainer):</strong> Explicitly <code>Deny</code> all <code>web3:CallContract</code> transactions to protect against malicious approvals.
           </div>
         </div>
       </details>
@@ -659,12 +671,9 @@
       <div class="section-header">2. Create New Vault inside MetaMask</div>
       
       <div class="form-row">
-        <label for="snapPolicySelect">Protection Policy:</label>
+        <label for="snapPolicySelect">Protection Policy Template:</label>
         <select id="snapPolicySelect" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border); font-size: 0.85rem; font-family: var(--sans);">
-          <option value="daily">Daily Spending Limit (0.1 ETH Max per tx)</option>
-          <option value="uniswap">Whitelisted DEX Router (Uniswap V3 Only)</option>
-          <option value="whitelist">Whitelisted Cold Wallet Only</option>
-          <option value="deny_contracts">Contract-Call Lockdown (Deny Smart Contracts)</option>
+          <!-- Populated from POLICY_TEMPLATES -->
         </select>
         <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
           Choose the IAM policy to lock into your MetaMask-managed key.
@@ -809,70 +818,372 @@ let wasmLoaded = false;
 let currentClientKeypair = null;
 let currentVaultData = null;
 
-const PRESET_POLICIES = {
-  daily: {
-    Version: "scafonix-2026-v1",
-    VaultId: "vault_daily_eth_01",
-    Statement: [{
-      Sid: "AllowEthTransferWithLimit",
-      Effect: "Allow",
-      Action: ["web3:TransferETH"],
-      Resource: ["*"],
-      Condition: {
-        NumericLessThanEquals: { "web3:ValueWei": 100000000000000000 },
-        NumericEquals: { "web3:ChainId": 1 }
-      }
-    }]
-  },
-  uniswap: {
-    Version: "scafonix-2026-v1",
-    VaultId: "vault_uniswap_dex_01",
-    Statement: [{
-      Sid: "AllowUniswapV3Only",
-      Effect: "Allow",
-      Action: ["web3:CallContract"],
-      Resource: ["ethereum:contract:0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"],
-      Condition: {
-        NumericEquals: { "web3:ChainId": 1 }
-      }
-    }]
-  },
-  whitelist: {
-    Version: "scafonix-2026-v1",
-    VaultId: "vault_cold_whitelist_01",
-    Statement: [{
-      Sid: "AllowOnlyDesignatedColdWallet",
-      Effect: "Allow",
-      Action: ["web3:TransferETH"],
-      Resource: ["0x70997970C51812dc3A010C7d01b50e0d17dc79C8"],
-      Condition: {
-        NumericEquals: { "web3:ChainId": 1 }
-      }
-    }]
-  },
-  deny_contracts: {
-    Version: "scafonix-2026-v1",
-    VaultId: "vault_no_contract_calls_01",
-    Statement: [
-      {
-        Sid: "AllowNativeTransfersUnder05Eth",
+// Comprehensive Library of Web3 Security Policy Templates
+const POLICY_TEMPLATES = [
+  {
+    id: "daily_01_eth",
+    category: "spending",
+    title: "Daily Spending Limit (0.1 ETH, Mainnet)",
+    desc: "Caps native transfers at 0.1 ETH per transaction on Ethereum Mainnet.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_daily_eth_01",
+      Statement: [{
+        Sid: "AllowEthTransferUnder01",
         Effect: "Allow",
         Action: ["web3:TransferETH"],
         Resource: ["*"],
         Condition: {
-          NumericLessThanEquals: { "web3:ValueWei": 500000000000000000 },
+          NumericLessThanEquals: { "web3:ValueWei": 100000000000000000 },
           NumericEquals: { "web3:ChainId": 1 }
         }
-      },
-      {
-        Sid: "ExplicitDenyAllContractInteractions",
-        Effect: "Deny",
+      }]
+    }
+  },
+  {
+    id: "micro_budget_all_chains",
+    category: "spending",
+    title: "Micro-Budget Signer (0.01 ETH, All Chains)",
+    desc: "Permits small transfers up to 0.01 ETH across any EVM network without chain restrictions.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_micro_budget_all_01",
+      Statement: [{
+        Sid: "AllowMicroTransfersAnyChain",
+        Effect: "Allow",
+        Action: ["web3:TransferETH"],
+        Resource: ["*"],
+        Condition: {
+          NumericLessThanEquals: { "web3:ValueWei": 10000000000000000 }
+        }
+      }]
+    }
+  },
+  {
+    id: "treasury_guard_5_eth",
+    category: "spending",
+    title: "Treasury Spending Cap (Max 5.0 ETH, Mainnet)",
+    desc: "Permits high-value payouts up to 5 ETH per transaction on Ethereum Mainnet.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_treasury_5eth_01",
+      Statement: [{
+        Sid: "AllowTreasuryPayoutsUnder5Eth",
+        Effect: "Allow",
+        Action: ["web3:TransferETH"],
+        Resource: ["*"],
+        Condition: {
+          NumericLessThanEquals: { "web3:ValueWei": 5000000000000000000 },
+          NumericEquals: { "web3:ChainId": 1 }
+        }
+      }]
+    }
+  },
+  {
+    id: "single_cold_wallet",
+    category: "whitelist",
+    title: "Single Cold Storage Whitelist (Mainnet)",
+    desc: "Strictly restricts native ETH transfers to 1 designated cold wallet address on Mainnet.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_cold_whitelist_01",
+      Statement: [{
+        Sid: "AllowOnlyDesignatedColdStorage",
+        Effect: "Allow",
+        Action: ["web3:TransferETH"],
+        Resource: ["0x70997970C51812dc3A010C7d01b50e0d17dc79C8"],
+        Condition: {
+          NumericEquals: { "web3:ChainId": 1 }
+        }
+      }]
+    }
+  },
+  {
+    id: "multi_recipient_whitelist",
+    category: "whitelist",
+    title: "Multi-Address Whitelist (3 Trusted Accounts, All Chains)",
+    desc: "Restricts transfers to 3 approved addresses across any chain with a 1.0 ETH cap.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_multi_whitelist_01",
+      Statement: [{
+        Sid: "AllowThreeTrustedAddressesAnyChain",
+        Effect: "Allow",
+        Action: ["web3:TransferETH"],
+        Resource: [
+          "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+          "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+        ],
+        Condition: {
+          NumericLessThanEquals: { "web3:ValueWei": 1000000000000000000 }
+        }
+      }]
+    }
+  },
+  {
+    id: "uniswap_v3_only",
+    category: "defi",
+    title: "Uniswap V3 DEX Trading Only (SwapRouter)",
+    desc: "Restricts smart contract calls exclusively to verified Uniswap V3 SwapRouter on Mainnet.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_uniswap_dex_01",
+      Statement: [{
+        Sid: "AllowUniswapV3RouterOnly",
+        Effect: "Allow",
         Action: ["web3:CallContract"],
-        Resource: ["*"]
-      }
-    ]
+        Resource: ["ethereum:contract:0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"],
+        Condition: {
+          NumericEquals: { "web3:ChainId": 1 }
+        }
+      }]
+    }
+  },
+  {
+    id: "multi_dex_whitelist",
+    category: "defi",
+    title: "Multi-Protocol DeFi Whitelist (Uniswap + Curve)",
+    desc: "Permits contract interactions exclusively with Uniswap V3 SwapRouter and Curve 3pool.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_multi_defi_01",
+      Statement: [{
+        Sid: "AllowApprovedDeFiProtocols",
+        Effect: "Allow",
+        Action: ["web3:CallContract"],
+        Resource: [
+          "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+          "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"
+        ],
+        Condition: {
+          NumericEquals: { "web3:ChainId": 1 }
+        }
+      }]
+    }
+  },
+  {
+    id: "base_l2_only",
+    category: "network",
+    title: "Base L2 Network Lockdown (Chain 8453)",
+    desc: "Enforces all transactions (native transfers & contract calls) to run on Base Mainnet only.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_base_l2_01",
+      Statement: [{
+        Sid: "AllowTransactionsOnBaseOnly",
+        Effect: "Allow",
+        Action: ["*"],
+        Resource: ["*"],
+        Condition: {
+          NumericEquals: { "web3:ChainId": 8453 }
+        }
+      }]
+    }
+  },
+  {
+    id: "arbitrum_optimism_l2s",
+    category: "network",
+    title: "Multi-L2 Signer (Arbitrum 42161 & Optimism 10)",
+    desc: "Allows transfers on Arbitrum (42161) or Optimism (10) with individual spending caps.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_l2_rollup_01",
+      Statement: [
+        {
+          Sid: "AllowArbitrumTransfers",
+          Effect: "Allow",
+          Action: ["web3:TransferETH"],
+          Resource: ["*"],
+          Condition: {
+            NumericLessThanEquals: { "web3:ValueWei": 1000000000000000000 },
+            NumericEquals: { "web3:ChainId": 42161 }
+          }
+        },
+        {
+          Sid: "AllowOptimismTransfers",
+          Effect: "Allow",
+          Action: ["web3:TransferETH"],
+          Resource: ["*"],
+          Condition: {
+            NumericLessThanEquals: { "web3:ValueWei": 1000000000000000000 },
+            NumericEquals: { "web3:ChainId": 10 }
+          }
+        }
+      ]
+    }
+  },
+  {
+    id: "lockdown_deny_contracts",
+    category: "security",
+    title: "Anti-Drainer Defense (Deny Smart Contracts)",
+    desc: "Allows native ETH transfers under 0.5 ETH, but explicitly DENIES all contract calls.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_anti_drainer_01",
+      Statement: [
+        {
+          Sid: "AllowNativeTransfersUnder05Eth",
+          Effect: "Allow",
+          Action: ["web3:TransferETH"],
+          Resource: ["*"],
+          Condition: {
+            NumericLessThanEquals: { "web3:ValueWei": 500000000000000000 },
+            NumericEquals: { "web3:ChainId": 1 }
+          }
+        },
+        {
+          Sid: "ExplicitDenyAllContractInteractions",
+          Effect: "Deny",
+          Action: ["web3:CallContract"],
+          Resource: ["*"]
+        }
+      ]
+    }
+  },
+  {
+    id: "deny_blacklisted_address",
+    category: "security",
+    title: "Explicit Blacklist Guard (Deny Specific Address)",
+    desc: "Allows general transfers on Mainnet, but explicitly DENIES any transfer to a suspicious address.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_blacklist_guard_01",
+      Statement: [
+        {
+          Sid: "AllowStandardMainnetTransfers",
+          Effect: "Allow",
+          Action: ["web3:TransferETH"],
+          Resource: ["*"],
+          Condition: {
+            NumericLessThanEquals: { "web3:ValueWei": 2000000000000000000 },
+            NumericEquals: { "web3:ChainId": 1 }
+          }
+        },
+        {
+          Sid: "ExplicitDenyMaliciousActor",
+          Effect: "Deny",
+          Action: ["*"],
+          Resource: ["0x000000000000000000000000000000000000dEaD"]
+        }
+      ]
+    }
+  },
+  {
+    id: "custom_starter",
+    category: "starter",
+    title: "Custom Policy (Minimal Starter Scaffold)",
+    desc: "Blank starter template with Allow statement for writing your own custom policy.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_custom_scaffold_01",
+      Statement: [
+        {
+          Sid: "CustomAllowStatement",
+          Effect: "Allow",
+          Action: ["web3:TransferETH"],
+          Resource: ["*"],
+          Condition: {
+            NumericLessThanEquals: { "web3:ValueWei": 100000000000000000 },
+            NumericEquals: { "web3:ChainId": 1 }
+          }
+        }
+      ]
+    }
+  }
+];
+
+let activeFilteredTemplates = [...POLICY_TEMPLATES];
+
+window.filterTemplates = function() {
+  const cat = document.getElementById('templateCategorySelect').value;
+  const q = document.getElementById('templateSearchInput').value.trim().toLowerCase();
+
+  activeFilteredTemplates = POLICY_TEMPLATES.filter(t => {
+    const matchCat = (cat === 'all') || (t.category === cat);
+    const matchQuery = !q || 
+      t.title.toLowerCase().includes(q) || 
+      t.desc.toLowerCase().includes(q) || 
+      t.id.toLowerCase().includes(q);
+    return matchCat && matchQuery;
+  });
+
+  const badge = document.getElementById('templateCountBadge');
+  badge.innerText = `${activeFilteredTemplates.length} templates available`;
+
+  renderTemplateOptions();
+};
+
+function renderTemplateOptions() {
+  const select = document.getElementById('templateSelect');
+  select.innerHTML = '';
+
+  if (activeFilteredTemplates.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = "";
+    opt.text = "-- No matching templates found --";
+    select.appendChild(opt);
+    return;
+  }
+
+  activeFilteredTemplates.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.text = t.title;
+    select.appendChild(opt);
+  });
+
+  // Select first template and load it
+  select.selectedIndex = 0;
+  window.onTemplateSelectChange();
+}
+
+window.onTemplateSelectChange = function() {
+  const select = document.getElementById('templateSelect');
+  const tplId = select.value;
+  const tpl = POLICY_TEMPLATES.find(t => t.id === tplId);
+  if (!tpl) return;
+
+  document.getElementById('templateTitleDisplay').innerText = tpl.title;
+  document.getElementById('templateDescDisplay').innerText = tpl.desc;
+
+  const textarea = document.getElementById('policyJsonInput');
+  textarea.value = JSON.stringify(tpl.policy, null, 2);
+  window.onPolicyChanged();
+};
+
+window.resetCurrentTemplate = function() {
+  window.onTemplateSelectChange();
+};
+
+window.copyPolicyJson = function() {
+  const jsonText = document.getElementById('policyJsonInput').value;
+  navigator.clipboard.writeText(jsonText).then(() => {
+    alert("Policy JSON copied to clipboard!\nMake sure to save this document securely with your backup records.");
+  });
+};
+
+window.onPolicyChanged = function() {
+  if (!wasmLoaded) return;
+  const jsonText = document.getElementById('policyJsonInput').value;
+  try {
+    const hash = compute_policy_hash_wasm(jsonText);
+    document.getElementById('policyHashDisplay').innerText = hash;
+  } catch (e) {
+    document.getElementById('policyHashDisplay').innerText = '(Invalid policy format: ' + e + ')';
   }
 };
+
+function populateSnapTemplates() {
+  const select = document.getElementById('snapPolicySelect');
+  select.innerHTML = '';
+  POLICY_TEMPLATES.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.text = t.title;
+    select.appendChild(opt);
+  });
+}
 
 window.handleConnectSnap = async function() {
   if (!window.ethereum) {
@@ -934,11 +1245,17 @@ window.handleCreateSnapVault = async function() {
     return;
   }
   const snapId = document.getElementById('snapIdInput').value.trim();
-  const preset = document.getElementById('snapPolicySelect').value;
+  const tplId = document.getElementById('snapPolicySelect').value;
   const pwd = document.getElementById('snapPasswordInput').value;
 
   if (!pwd || pwd.length < 8) {
     alert("Please enter a recovery password of at least 8 characters.");
+    return;
+  }
+
+  const tpl = POLICY_TEMPLATES.find(t => t.id === tplId);
+  if (!tpl) {
+    alert("Please select a valid policy template.");
     return;
   }
 
@@ -947,7 +1264,6 @@ window.handleCreateSnapVault = async function() {
   btn.innerText = "Creating Vault in Snap...";
 
   try {
-    const policy = PRESET_POLICIES[preset];
     const res = await window.ethereum.request({
       method: 'wallet_invokeSnap',
       params: {
@@ -955,7 +1271,7 @@ window.handleCreateSnapVault = async function() {
         request: {
           method: 'scafonix_createVault',
           params: {
-            policy,
+            policy: tpl.policy,
             recovery_password: pwd,
             inspector_url: 'https://vault-api.scafonix.com'
           }
@@ -1022,29 +1338,6 @@ window.handleSignTxSnap = async function() {
   } finally {
     btn.disabled = false;
     btn.innerText = "Request Co-Sign via MetaMask";
-  }
-};
-
-window.updatePolicyPreset = function() {
-  const selected = document.querySelector('input[name="policy_preset"]:checked').value;
-  const textarea = document.getElementById('policyJsonInput');
-  if (PRESET_POLICIES[selected]) {
-    textarea.value = JSON.stringify(PRESET_POLICIES[selected], null, 2);
-    textarea.readOnly = true;
-  } else {
-    textarea.readOnly = false;
-  }
-  window.onPolicyChanged();
-};
-
-window.onPolicyChanged = function() {
-  if (!wasmLoaded) return;
-  const jsonText = document.getElementById('policyJsonInput').value;
-  try {
-    const hash = compute_policy_hash_wasm(jsonText);
-    document.getElementById('policyHashDisplay').innerText = hash;
-  } catch (e) {
-    document.getElementById('policyHashDisplay').innerText = '(Invalid policy format: ' + e + ')';
   }
 };
 
@@ -1223,10 +1516,12 @@ window.downloadAirgapTool = function() {
 // Initialize
 async function start() {
   try {
+    populateSnapTemplates();
+    renderTemplateOptions();
     await init();
     wasmLoaded = true;
     document.getElementById('engineStatus').innerText = '[Engine: Active]';
-    window.updatePolicyPreset();
+    window.onPolicyChanged();
   } catch (e) {
     console.error(e);
     document.getElementById('engineStatus').innerText = '[Engine: Load Error]';
