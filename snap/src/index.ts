@@ -169,6 +169,79 @@ export const onRpcRequest: OnRpcRequestHandler = async ({ origin, request }) => 
       };
     }
 
+    case 'scafonix_importVault': {
+      const params = request.params as {
+        sk_a_hex: string;
+        vault_address: string;
+        enclave_qb_hex: string;
+        policy?: Record<string, unknown>;
+        policy_hash?: string;
+        voucher_c?: string;
+      };
+
+      if (!params || !params.sk_a_hex || !params.vault_address || !params.enclave_qb_hex) {
+        throw new Error('Missing sk_a_hex, vault_address, or enclave_qb_hex in parameters');
+      }
+
+      let cleanSkA = params.sk_a_hex.trim();
+      if (cleanSkA.startsWith('0x')) cleanSkA = cleanSkA.slice(2);
+
+      let cleanQb = params.enclave_qb_hex.trim();
+      if (cleanQb.startsWith('0x')) cleanQb = cleanQb.slice(2);
+
+      // Verify mathematical address match Q = Q_A + Q_B
+      const qABytes = secp256k1.getPublicKey(hexToBytes(cleanSkA), false);
+      const pA = secp256k1.Point.fromHex(bytesToHex(qABytes));
+      const pB = secp256k1.Point.fromHex(cleanQb);
+      const pJoint = pA.add(pB);
+      const jointPubHex = bytesToHex(pJoint.toBytes(false));
+      const clientCalculatedAddress = deriveEthereumAddress(jointPubHex);
+
+      if (clientCalculatedAddress.toLowerCase() !== params.vault_address.toLowerCase()) {
+        throw new Error(
+          `Security Alert: Address mismatch. Provided ${params.vault_address} but Share A + Share B computed ${clientCalculatedAddress}`,
+        );
+      }
+
+      const vaultState: VaultState = {
+        sk_a_hex: cleanSkA,
+        vault_address: params.vault_address,
+        enclave_qb_hex: cleanQb,
+        policy: params.policy || {},
+        policy_hash: params.policy_hash || '',
+        voucher_c: params.voucher_c || '',
+        created_at: new Date().toISOString(),
+      };
+
+      await snap.request({
+        method: 'snap_manageState',
+        params: { operation: 'set', newState: vaultState as any },
+      });
+
+      await snap.request({
+        method: 'snap_dialog',
+        params: {
+          type: 'alert',
+          content: {
+            type: 'panel',
+            children: [
+              { type: 'heading', value: 'scafonix Vault Imported' },
+              {
+                type: 'text',
+                value: `Successfully imported Vault ${params.vault_address} into MetaMask. Client Share A is now encrypted in your secure enclave.`,
+              },
+            ],
+          },
+        },
+      });
+
+      return {
+        success: true,
+        vault_address: vaultState.vault_address,
+        policy_hash: vaultState.policy_hash,
+      };
+    }
+
     case 'scafonix_signTransaction': {
       const state = (await snap.request({
         method: 'snap_manageState',

@@ -1,6 +1,6 @@
 {
   "name": "scafonix-vault-snap",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MetaMask Snap for scafonix Vault (pEOA) — Programmable MPC 2-Party Signer",
   "main": "dist/bundle.js",
   "repository": {

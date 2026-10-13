@@ -341,23 +341,23 @@
 
   <!-- How It Works (Beginner Developer Guide) -->
   <div class="notice" style="background: #fbfbfb; border-left: 3px solid #222;">
-    <div style="font-weight: 700; margin-bottom: 4px;">How the 2-of-2 Programmable MPC Vault Works:</div>
+    <div style="font-weight: 700; margin-bottom: 4px;">Two Ways to Secure Your 2-of-2 Vault Key:</div>
     <div style="font-size: 0.82rem; color: #444; line-height: 1.45;">
-      Standard Ethereum wallets rely on a single private key: if leaked or phished, your assets are compromised.
-      <strong>scafonix Vault</strong> replaces this single point of failure with a <strong>2-of-2 Multi-Party Computation (MPC)</strong> key:
+      Standard wallets use a single private key that can be drained if leaked. <strong>Scafonix Vault</strong> splits your key into <strong>2-of-2 MPC shares</strong>:
+      you hold <strong>Share A</strong>, and the automated Inspector holds <strong>Share B</strong> (co-signing only when your AWS IAM policy allows it).
+      Choose how you want to manage Share A:
       <ul style="margin: 6px 0 6px 18px; padding: 0;">
-        <li><strong>Share A (Client / You):</strong> Stored locally in your browser or MetaMask Snap. Never leaves your hardware.</li>
-        <li><strong>Share B (Policy Inspector):</strong> Held by an automated co-signer (vault-api.scafonix.com). Only signs if transactions strictly comply with your AWS IAM-style JSON security policy.</li>
-        <li><strong>Share C (Emergency Recovery Voucher):</strong> Encrypted with your password. If the inspector ever shuts down, you can recover 100% of your funds locally without anyone's permission.</li>
+        <li><strong>Mode 1 (Standalone Generator - Tab 1):</strong> Generated in your browser. You receive Share A directly and download an encrypted backup JSON. Ideal for offline air-gap cold storage or custom scripts.</li>
+        <li><strong>Mode 2 (MetaMask Snap Extension - Tab 2):</strong> Generated directly inside MetaMask. Share A is encrypted and kept inside MetaMask's private sandbox without ever touching web memory or clipboard. Ideal for everyday DeFi transactions.</li>
       </ul>
     </div>
   </div>
 
   <!-- Navigation Tabs -->
   <div class="nav-bar">
-    <button id="tabCreate" class="nav-tab active" onclick="switchView('create')">Vault Generator</button>
-    <button id="tabSnap" class="nav-tab" onclick="switchView('snap')">MetaMask Snap Integration</button>
-    <button id="tabRecovery" class="nav-tab" onclick="switchView('recovery')">Disaster Recovery Signer</button>
+    <button id="tabCreate" class="nav-tab active" onclick="switchView('create')">1. Standalone Generator (Offline / Web)</button>
+    <button id="tabSnap" class="nav-tab" onclick="switchView('snap')">2. MetaMask Snap (Browser Extension)</button>
+    <button id="tabRecovery" class="nav-tab" onclick="switchView('recovery')">3. Disaster Recovery Signer</button>
   </div>
 
   <!-- VIEW 1: VAULT GENERATOR -->
@@ -672,8 +672,24 @@
 
     <!-- Step B: Create Vault in Snap -->
     <div class="section">
-      <div class="section-header">2. Create New Vault inside MetaMask</div>
+      <div class="section-header">2. Generate Vault with MetaMask Security</div>
       
+      <div class="notice" style="background: #fdfdfd; border-left: 3px solid #0b5cab;">
+        <strong>How MetaMask Enclave Security Works:</strong><br>
+        When you generate here, MetaMask creates <strong>Share A</strong> directly inside its encrypted hardware-backed sandbox.
+        Your private key share never touches web memory, temporary files, or the clipboard.
+        Your vault is instantly ready to approve transactions directly through MetaMask popups.
+      </div>
+
+      <details style="margin-top: 10px; margin-bottom: 14px;">
+        <summary>How does this compare to Tab 1 (Standalone Generator)?</summary>
+        <div class="details-inner" style="font-size: 0.78rem; line-height: 1.45; color: #444;">
+          • <strong>Tab 1 (Standalone Generator):</strong> Generates Share A in your browser page. You download and secure a <code>backup.json</code> file. Best for offline cold storage or custom scripts.<br>
+          • <strong>Tab 2 (MetaMask Snap):</strong> Generates Share A inside MetaMask's private storage. MetaMask manages Share A automatically. Best for everyday DeFi and dApps.<br>
+          <em>Both modes create an identical 2-of-2 programmable MPC vault on-chain with zero gas deployment fees.</em>
+        </div>
+      </details>
+
       <div class="form-row">
         <label for="snapPolicySelect">Protection Policy Template:</label>
         <select id="snapPolicySelect" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border); font-size: 0.85rem; font-family: var(--sans);">
@@ -693,7 +709,7 @@
       </div>
 
       <div style="margin-top: 12px;">
-        <button id="createSnapVaultBtn" class="btn" onclick="handleCreateSnapVault()">Create Vault inside MetaMask</button>
+        <button id="createSnapVaultBtn" class="btn" onclick="handleCreateSnapVault()">Generate Vault inside MetaMask</button>
       </div>
     </div>
 
