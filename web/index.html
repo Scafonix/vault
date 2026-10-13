@@ -347,8 +347,8 @@
       Standard wallets use a single private key that can be drained if leaked. <strong>Scafonix Vault</strong> splits your key into <strong>2-of-2 MPC shares</strong>:
       you hold <strong>Share A</strong>, and the automated Inspector holds <strong>Share B</strong> (co-signing only when your AWS IAM JSON policy allows it).
       <ul style="margin: 6px 0 6px 18px; padding: 0;">
-        <li><strong>Step 1 (Generate Vault & Set Rules):</strong> Configure your AWS IAM rules (e.g. daily limits, whitelisted smart contracts) and generate your vault.</li>
-        <li><strong>Step 2 (Connect to Web3 dApps & DEXes):</strong> Use the universal <strong>WalletConnect v2</strong> connector on Tab 2. Copy the pairing URI from any dApp (DEX, Lending, NFT), pair your Vault, and transact with cryptographic policy enforcement.</li>
+        <li><strong>Step 1 (Connect to Web3 dApps & DEXes):</strong> Use universal <strong>WalletConnect v2</strong> on Tab 1 to pair your active Vault with any DEX or DeFi app and trade with cryptographic policy enforcement.</li>
+        <li><strong>Step 2 (Generate Vault & Set Rules):</strong> Need a new vault or custom policy? Define your AWS IAM JSON rules on Tab 2 and execute 2-party DKG.</li>
         <li><strong>Step 3 (Emergency Rescue):</strong> If the server ever goes offline, use your encrypted Share C voucher on Tab 3 for 100% unilateral recovery.</li>
       </ul>
     </div>
@@ -356,13 +356,105 @@
 
   <!-- Navigation Tabs -->
   <div class="nav-bar">
-    <button id="tabCreate" class="nav-tab active" onclick="switchView('create')">1. Vault Generator & Rules</button>
-    <button id="tabConnect" class="nav-tab" onclick="switchView('connect')">2. dApp Connector (WalletConnect)</button>
+    <button id="tabConnect" class="nav-tab active" onclick="switchView('connect')">1. dApp Connector (WalletConnect)</button>
+    <button id="tabCreate" class="nav-tab" onclick="switchView('create')">2. Vault Generator & Policy Rules</button>
     <button id="tabRecovery" class="nav-tab" onclick="switchView('recovery')">3. Disaster Recovery Signer</button>
   </div>
 
-  <!-- VIEW 1: VAULT GENERATOR -->
-  <div id="panelCreate" class="view-panel active">
+  <!-- VIEW 1: WALLETCONNECT & DAPP CONNECTOR (DEFAULT MAIN DASHBOARD) -->
+  <div id="panelConnect" class="view-panel active">
+    <!-- Active Vault Status Card -->
+    <div id="wcVaultCard" style="border: 1px solid var(--border); background: var(--panel-bg); padding: 14px 16px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700;">Active 2-of-2 MPC Vault</span>
+          <div style="font-size: 1.05rem; font-weight: 700; font-family: var(--mono); color: #0b5cab; margin-top: 2px;" id="dashVaultAddressDisplay">
+            (No Vault Loaded)
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <span id="dashVaultStatusBadge" style="font-size: 0.72rem; padding: 3px 8px; background: #eee; color: #666; font-weight: 600; border-radius: 2px;">
+            Not Connected
+          </span>
+          <button class="btn btn-secondary btn-sm" onclick="toggleCredentialModal()">Settings & Key</button>
+        </div>
+      </div>
+
+      <!-- Quick Vault Credentials Drawer (Collapsible) -->
+      <div id="wcCredentialDrawer" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border);">
+        <div class="form-row" style="margin-bottom: 8px;">
+          <label for="wcVaultAddress">Vault Address (0x...):</label>
+          <input type="text" id="wcVaultAddress" placeholder="0x... (paste existing or generate in Tab 2)" style="font-family: var(--mono); font-size: 0.82rem;" oninput="onWcCredentialsInput()">
+        </div>
+        <div class="form-row" style="margin-bottom: 8px;">
+          <label for="wcClientSkA">Client Share A (sk_A hex):</label>
+          <input type="password" id="wcClientSkA" placeholder="32-byte hex private share" style="font-family: var(--mono); font-size: 0.8rem;" oninput="onWcCredentialsInput()">
+          <div style="font-size: 0.72rem; color: var(--muted); margin-top: 2px;">
+            Your private share stays encrypted in local browser memory.
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px; align-items: center; margin-top: 6px;">
+          <button class="btn btn-secondary btn-sm" onclick="saveWcCredentials()">Save to Browser</button>
+          <button class="btn btn-secondary btn-sm" onclick="clearWcCredentials()">Clear</button>
+          <span style="font-size: 0.72rem; color: var(--muted); margin-left: 4px;">Don't have a vault yet? <a href="#" onclick="switchView('create'); return false;" style="color: #0b5cab; text-decoration: underline;">Generate one in Tab 2</a>.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Pair Box -->
+    <div class="section">
+      <div class="section-header">Connect with Web3 dApp or DEX</div>
+      <div class="notice" style="background: #fdfdfd; border-left: 3px solid #0b5cab; margin-bottom: 12px;">
+        <strong>How to Connect:</strong> Open any dApp (DEX, Lending, NFT) &rarr; Click <strong>"Connect Wallet"</strong> &rarr; Select <strong>"WalletConnect"</strong> &rarr; Copy the <code>wc:...</code> link and paste below.
+      </div>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <input type="text" id="wcUriInput" placeholder="Paste WalletConnect URI (wc:...)" style="flex: 1; min-width: 260px; font-family: var(--mono); font-size: 0.82rem;">
+        <button id="wcPairBtn" class="btn" style="min-width: 140px;" onclick="handlePairWalletConnect()">Pair with dApp</button>
+        <button id="wcDisconnectBtn" class="btn btn-secondary" onclick="handleDisconnectWc()" style="display: none;">Disconnect</button>
+      </div>
+
+      <!-- Live Session Status Box -->
+      <div id="wcSessionStatusBox" style="margin-top: 14px; display: none;">
+        <table class="data-table">
+          <tr>
+            <th>Connected dApp</th>
+            <td id="wcDAppName" style="font-weight: 600;">Web3 Application</td>
+          </tr>
+          <tr>
+            <th>dApp URL</th>
+            <td id="wcDAppUrl" class="mono-cell">https://...</td>
+          </tr>
+          <tr>
+            <th>Active Vault Address</th>
+            <td class="mono-cell address-highlight" id="wcActiveVaultDisplay">0x...</td>
+          </tr>
+          <tr>
+            <th>Supported Chains</th>
+            <td id="wcSupportedChains">Ethereum Mainnet (1), Sepolia (11155111)</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Co-Sign Policy Enforcement Live Log / Simulation -->
+    <div class="section">
+      <div class="section-header">Live Policy Enforcement & Activity Log</div>
+      <div class="notice">
+        When you submit transactions in your paired dApp, the 2nd Inspector evaluates them against your locked AWS IAM policy before co-signing.
+      </div>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="simulateDAppTx(true)">Simulate Whitelisted Call (&le; 0.1 ETH)</button>
+        <button class="btn btn-secondary btn-sm" onclick="simulateDAppTx(false)">Simulate Blocked Call (Policy Violation)</button>
+      </div>
+
+      <div id="wcTxResultBox" style="margin-top: 12px; display: none;"></div>
+    </div>
+  </div>
+
+  <!-- VIEW 2: VAULT GENERATOR & POLICY RULES -->
+  <div id="panelCreate" class="view-panel">
     <!-- Step 1: Policy Selection -->
     <div class="section">
       <div class="section-header">1. Security Policy Specification (AWS IAM JSON Rules)</div>
@@ -633,104 +725,6 @@
         <button class="btn btn-secondary btn-sm" onclick="downloadBackupJson()">Download Backup JSON</button>
         <button class="btn btn-sm" style="background: #0b5cab; border-color: #0b5cab; color: #fff;" onclick="openDAppConnector()">Connect to dApp via WalletConnect &rarr;</button>
       </div>
-    </div>
-  </div>
-
-  <!-- VIEW 2: WALLETCONNECT & DAPP CONNECTOR -->
-  <div id="panelConnect" class="view-panel">
-    <!-- Section 1: Active Vault Signer Credentials -->
-    <div class="section">
-      <div class="section-header">1. Active Vault Signer Credentials</div>
-
-      <div class="notice">
-        This connector bridges your Scafonix 2-of-2 MPC Vault to any Web3 dApp (any DEX, Lending, or DeFi protocol) via <strong>WalletConnect v2</strong>.<br>
-        Your Client Secret Share ($sk_A$) signs locally in this browser tab, while the 2nd Inspector co-signs only if the transaction adheres to your locked AWS IAM policy.
-      </div>
-
-      <div class="form-row">
-        <label for="wcVaultAddress">Vault Address (0x...):</label>
-        <input type="text" id="wcVaultAddress" placeholder="0x... (from Step 3 above or paste existing)" style="font-family: var(--mono); font-size: 0.85rem; font-weight: 600; color: #0b5cab;">
-        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
-          The joint 2-of-2 MPC address exposed to dApps.
-        </div>
-      </div>
-
-      <div class="form-row">
-        <label for="wcClientSkA">Client Share A (sk_A hex):</label>
-        <input type="password" id="wcClientSkA" placeholder="32-byte hex scalar (e.g. 0x... or 64 hex characters)" style="font-family: var(--mono); font-size: 0.8rem;">
-        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
-          Your private share generated in Step 3. Never leaves this browser window.
-        </div>
-      </div>
-
-      <div style="margin-top: 10px; display: flex; gap: 8px;">
-        <button class="btn btn-secondary btn-sm" onclick="syncActiveVaultToWc()">Import Active Vault from Generator</button>
-      </div>
-    </div>
-
-    <!-- Section 2: Pair with Any Web3 dApp (DEX, DeFi, NFT) -->
-    <div class="section">
-      <div class="section-header">2. Pair with Any Web3 dApp (WalletConnect v2)</div>
-
-      <div class="notice" style="background: #fdfdfd; border-left: 3px solid #0b5cab;">
-        <strong>How to Connect to Any dApp or DEX:</strong><br>
-        1. Open your chosen dApp (e.g. any DEX, lending market, or DeFi portal) in another tab or device.<br>
-        2. Click <strong>"Connect Wallet"</strong> &rarr; Select <strong>"WalletConnect"</strong> &rarr; Click <strong>"Copy to clipboard"</strong> (or copy the <code>wc:...</code> pairing link).<br>
-        3. Paste the URI below and click <strong>"Pair with dApp"</strong>.<br>
-        4. Execute trades or contract interactions in the dApp! Transaction requests are transmitted to this vault and cryptographically checked against your locked AWS IAM policy before co-signing.
-      </div>
-
-      <div class="form-row">
-        <label for="wcUriInput">WalletConnect Pairing URI (wc:...):</label>
-        <input type="text" id="wcUriInput" placeholder="wc:79b8830b...4a89@2?relay-protocol=irn&symKey=..." style="font-family: var(--mono); font-size: 0.8rem;">
-      </div>
-
-      <div style="margin-top: 12px; display: flex; gap: 8px;">
-        <button id="wcPairBtn" class="btn" onclick="handlePairWalletConnect()">Pair with dApp</button>
-        <button id="wcDisconnectBtn" class="btn btn-secondary" onclick="handleDisconnectWc()" style="display: none;">Disconnect Session</button>
-      </div>
-
-      <!-- Live Session Status Box -->
-      <div id="wcSessionStatusBox" style="margin-top: 14px; display: none;">
-        <table class="data-table">
-          <tr>
-            <th>Status</th>
-            <td id="wcSessionStatusLabel" style="font-weight: 600; color: var(--success-text);">Connected</td>
-          </tr>
-          <tr>
-            <th>Connected dApp</th>
-            <td id="wcDAppName" style="font-weight: 600;">Web3 Application</td>
-          </tr>
-          <tr>
-            <th>dApp URL</th>
-            <td id="wcDAppUrl" class="mono-cell">https://...</td>
-          </tr>
-          <tr>
-            <th>Active Vault Address</th>
-            <td class="mono-cell address-highlight" id="wcActiveVaultDisplay">0x...</td>
-          </tr>
-          <tr>
-            <th>Supported Chains</th>
-            <td id="wcSupportedChains">Ethereum Mainnet (1), Sepolia (11155111)</td>
-          </tr>
-        </table>
-      </div>
-    </div>
-
-    <!-- Section 3: Live Policy Enforcement & Transaction Simulation -->
-    <div class="section">
-      <div class="section-header">3. Policy Enforcement & Co-Sign Engine Test</div>
-
-      <div class="notice">
-        Verify that your locked AWS IAM policy correctly intercepts, approves, or rejects dApp transaction calls before broadcasting to the network.
-      </div>
-
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button class="btn btn-secondary btn-sm" onclick="simulateDAppTx(true)">Simulate Whitelisted Contract Call (&le; 0.1 ETH)</button>
-        <button class="btn btn-secondary btn-sm" onclick="simulateDAppTx(false)">Simulate Blocked Call (Untrusted Contract / Limit Exceeded)</button>
-      </div>
-
-      <div id="wcTxResultBox" style="margin-top: 14px; display: none;"></div>
     </div>
   </div>
 
@@ -1240,6 +1234,106 @@ window.onPolicyChanged = function() {
 let wcClient = null;
 let activeWcSession = null;
 
+const STORAGE_KEY_VAULT = 'scafonix_active_vault';
+
+window.toggleCredentialModal = function() {
+  const drawer = document.getElementById('wcCredentialDrawer');
+  if (!drawer) return;
+  drawer.style.display = drawer.style.display === 'none' ? 'block' : 'none';
+};
+
+window.onWcCredentialsInput = function() {
+  refreshVaultDashboardUi();
+};
+
+window.saveWcCredentials = function() {
+  const addr = (document.getElementById('wcVaultAddress').value || '').trim();
+  const skA = (document.getElementById('wcClientSkA').value || '').trim();
+
+  if (!addr && !skA) {
+    localStorage.removeItem(STORAGE_KEY_VAULT);
+    refreshVaultDashboardUi();
+    alert("Vault credentials cleared from browser storage.");
+    return;
+  }
+
+  const payload = {
+    address: addr,
+    sk_a: skA,
+    saved_at: Date.now()
+  };
+
+  try {
+    localStorage.setItem(STORAGE_KEY_VAULT, JSON.stringify(payload));
+    refreshVaultDashboardUi();
+    const drawer = document.getElementById('wcCredentialDrawer');
+    if (drawer) drawer.style.display = 'none';
+    alert("Active vault credentials saved securely in browser local storage.");
+  } catch (err) {
+    console.error("Failed to save credentials to localStorage:", err);
+    alert("Could not save to browser storage: " + err.message);
+  }
+};
+
+window.clearWcCredentials = function() {
+  document.getElementById('wcVaultAddress').value = '';
+  document.getElementById('wcClientSkA').value = '';
+  localStorage.removeItem(STORAGE_KEY_VAULT);
+  refreshVaultDashboardUi();
+  alert("Active vault credentials cleared.");
+};
+
+function loadSavedCredentials() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_VAULT);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.address) {
+      const addrInput = document.getElementById('wcVaultAddress');
+      if (addrInput) addrInput.value = data.address;
+    }
+    if (data.sk_a) {
+      const skInput = document.getElementById('wcClientSkA');
+      if (skInput) skInput.value = data.sk_a;
+    }
+  } catch (err) {
+    console.warn("Could not load saved vault credentials:", err);
+  }
+}
+
+function refreshVaultDashboardUi() {
+  const addr = (document.getElementById('wcVaultAddress').value || '').trim();
+  const skA = (document.getElementById('wcClientSkA').value || '').trim();
+  const display = document.getElementById('dashVaultAddressDisplay');
+  const badge = document.getElementById('dashVaultStatusBadge');
+
+  if (addr) {
+    if (display) display.innerText = addr;
+    if (badge) {
+      if (activeWcSession) {
+        badge.innerText = "Connected to dApp";
+        badge.style.background = "#d4edda";
+        badge.style.color = "#155724";
+      } else if (skA) {
+        badge.innerText = "Ready to Pair (Share A Loaded)";
+        badge.style.background = "#e2e3e5";
+        badge.style.color = "#383d41";
+      } else {
+        badge.innerText = "Address Set (Share A Needed)";
+        badge.style.background = "#fff3cd";
+        badge.style.color = "#856404";
+      }
+    }
+  } else {
+    if (display) display.innerText = "(No Vault Loaded)";
+    if (badge) {
+      badge.innerText = "Not Connected";
+      badge.style.background = "#eee";
+      badge.style.color = "#666";
+    }
+  }
+}
+
 window.openDAppConnector = function() {
   window.switchView('connect');
   window.syncActiveVaultToWc();
@@ -1251,6 +1345,7 @@ window.syncActiveVaultToWc = function() {
   if (currentVaultData && currentVaultData.address) {
     document.getElementById('wcVaultAddress').value = currentVaultData.address;
     document.getElementById('wcClientSkA').value = currentVaultData.sk_a;
+    refreshVaultDashboardUi();
   }
 };
 
@@ -1443,8 +1538,11 @@ function updateWcSessionUi(session) {
 
   if (session && session.peer) {
     const meta = session.peer.metadata || {};
-    document.getElementById('wcSessionStatusLabel').innerText = "Connected";
-    document.getElementById('wcSessionStatusLabel').style.color = "var(--success-text)";
+    const statusLabel = document.getElementById('wcSessionStatusLabel');
+    if (statusLabel) {
+      statusLabel.innerText = "Connected";
+      statusLabel.style.color = "var(--success-text)";
+    }
     document.getElementById('wcDAppName').innerText = meta.name || "Web3 dApp";
     document.getElementById('wcDAppUrl').innerText = meta.url || "-";
     document.getElementById('wcActiveVaultDisplay').innerText = document.getElementById('wcVaultAddress').value || "0x...";
@@ -1456,6 +1554,7 @@ function updateWcSessionUi(session) {
     disconnectBtn.style.display = 'none';
     pairBtn.innerText = "Pair with dApp";
   }
+  refreshVaultDashboardUi();
 }
 
 window.handlePairWalletConnect = async function() {
@@ -1628,11 +1727,12 @@ window.handleCreateVault = async function() {
     document.getElementById('recInputSkA').value = currentClientKeypair.sk_a_hex;
     document.getElementById('recInputVoucher').value = data.voucher_c;
 
-    // Prefill WalletConnect tab
+    // Prefill WalletConnect tab and auto-save as active vault
     const wcVault = document.getElementById('wcVaultAddress');
     if (wcVault) wcVault.value = data.vault_address;
     const wcSk = document.getElementById('wcClientSkA');
     if (wcSk) wcSk.value = currentClientKeypair.sk_a_hex;
+    window.saveWcCredentials();
 
     const resultSection = document.getElementById('resultSection');
     resultSection.style.display = 'block';
@@ -1700,7 +1800,7 @@ window.handleEmergencySign = async function() {
 
 window.copyText = function(elementId, msg) {
   const el = document.getElementById(elementId);
-  const val = el.value || el.innerText;
+  const val = el ? (el.value || el.innerText) : '';
   navigator.clipboard.writeText(val).then(() => {
     alert(msg || "Copied to clipboard");
   });
@@ -1734,6 +1834,8 @@ window.downloadAirgapTool = function() {
 // Initialize
 async function start() {
   try {
+    loadSavedCredentials();
+    refreshVaultDashboardUi();
     renderTemplateOptions();
     await init();
     wasmLoaded = true;
