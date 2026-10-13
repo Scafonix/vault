@@ -37,6 +37,10 @@ pub struct ShareB {
 }
 
 impl ShareB {
+    pub fn from_scalar(scalar: Scalar) -> Self {
+        Self { scalar }
+    }
+
     pub fn from_seed_and_policy(seed: Scalar, policy_hash: &[u8; 32]) -> Self {
         let hp = Scalar::from_repr((*policy_hash).into()).unwrap_or(Scalar::ONE);
         let scalar = seed + hp;

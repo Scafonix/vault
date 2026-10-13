@@ -1,8 +1,11 @@
+mod db;
+
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use db::Database;
 use k256::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
 use k256::elliptic_curve::PrimeField;
 use k256::{AffinePoint, EncodedPoint, ProjectivePoint, Scalar};
@@ -12,22 +15,12 @@ use scafonix_crypto::{
 };
 use scafonix_policy::{compute_policy_hash, PolicyDocument, TransactionContext};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
 use tower_http::cors::{Any, CorsLayer};
 
 #[derive(Clone)]
 struct ServerState {
-    vaults: Arc<Mutex<HashMap<String, VaultRecord>>>,
-}
-
-#[derive(Clone)]
-struct VaultRecord {
-    policy: PolicyDocument,
-    policy_hash: [u8; 32],
-    share_b: ShareB,
-    vault_address: String,
+    db: Database,
 }
 
 #[derive(Serialize)]
@@ -35,6 +28,7 @@ struct HealthResponse {
     status: &'static str,
     service: &'static str,
     version: &'static str,
+    stored_vaults: usize,
 }
 
 #[derive(Deserialize)]
@@ -56,7 +50,8 @@ struct DkgResponse {
 struct CosignRequest {
     vault_address: String,
     tx: TransactionContext,
-    raw_msg_hash_hex: String,
+    #[serde(default)]
+    raw_msg_hash_hex: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -74,9 +69,10 @@ struct ErrorResponse {
 
 #[tokio::main]
 async fn main() {
-    let state = ServerState {
-        vaults: Arc::new(Mutex::new(HashMap::new())),
-    };
+    let db = Database::open_default().expect("Failed to open persistent SQLite database");
+    let initial_count = db.count_vaults().unwrap_or(0);
+
+    let state = ServerState { db };
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -88,12 +84,14 @@ async fn main() {
         .route("/api/v1/dkg", post(dkg_handler))
         .route("/api/v1/cosign", post(cosign_handler))
         .layer(cors)
-        .with_state(state);
+        .with_state(state.clone());
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
     let addr: SocketAddr = format!("0.0.0.0:{port}").parse().unwrap();
     println!("========================================================================");
     println!("🛡️  scafonix Vault (2nd Inspector Server) starting on {}", addr);
+    println!("   Database: {:?}", state.db.db_path());
+    println!("   Active Vaults Stored: {}", initial_count);
     println!("   Endpoints:");
     println!("     GET  /health");
     println!("     POST /api/v1/dkg");
@@ -104,11 +102,13 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn health_handler() -> impl IntoResponse {
+async fn health_handler(State(state): State<ServerState>) -> impl IntoResponse {
+    let count = state.db.count_vaults().unwrap_or(0);
     Json(HealthResponse {
         status: "ok",
         service: "scafonix-vault-inspector",
         version: "0.1.0",
+        stored_vaults: count,
     })
 }
 
@@ -199,19 +199,25 @@ async fn dkg_handler(
     let qb_encoded = qb_proj.to_affine().to_encoded_point(false);
     let qb_hex = hex::encode(qb_encoded.as_bytes());
 
-    // Store record in server memory
-    {
-        let mut vaults = state.vaults.lock().unwrap();
-        vaults.insert(
-            vault_address.to_ascii_lowercase(),
-            VaultRecord {
-                policy: payload.policy,
-                policy_hash,
-                share_b,
-                vault_address: vault_address.clone(),
-            },
-        );
-    }
+    // 6. Store record persistently in SQLite database
+    state
+        .db
+        .insert_vault(
+            &vault_address,
+            &payload.policy,
+            &policy_hash,
+            &share_b,
+            &payload.client_qa_hex,
+        )
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "DATABASE_ERROR".to_string(),
+                    reason: format!("Failed to persist vault record: {e}"),
+                }),
+            )
+        })?;
 
     Ok(Json(DkgResponse {
         vault_address,
@@ -225,9 +231,18 @@ async fn cosign_handler(
     State(state): State<ServerState>,
     Json(payload): Json<CosignRequest>,
 ) -> Result<Json<CosignResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let vaults = state.vaults.lock().unwrap();
-    let record = vaults
-        .get(&payload.vault_address.to_ascii_lowercase())
+    let record = state
+        .db
+        .get_vault(&payload.vault_address)
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "DATABASE_ERROR".to_string(),
+                    reason: format!("Database lookup failed: {e}"),
+                }),
+            )
+        })?
         .ok_or_else(|| {
             (
                 StatusCode::NOT_FOUND,
