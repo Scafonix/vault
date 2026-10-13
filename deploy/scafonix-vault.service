@@ -4,18 +4,19 @@ After=network.target
 
 [Service]
 Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/guardian-dev
-ExecStart=/home/ubuntu/guardian-dev/target/release/scafonix-server
+User=vault
+WorkingDirectory=/opt/scafonix-vault
+ExecStart=/opt/scafonix-vault/scafonix-server
 Restart=always
 RestartSec=3
 Environment=PORT=3000
 Environment=RUST_LOG=info
+Environment=DATABASE_PATH=/var/lib/scafonix-vault/vault.db
 
 # Security Hardening
 NoNewPrivileges=true
 ProtectSystem=full
-ProtectHome=read-only
+ReadWritePaths=/var/lib/scafonix-vault
 PrivateTmp=true
 
 [Install]

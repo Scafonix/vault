@@ -2,7 +2,7 @@
 set -e
 
 echo "========================================================================"
-echo "🛡️  scafonix Vault — Amazon Lightsail 1-Click Setup Script"
+echo "scafonix Vault — Dedicated Server Setup Script"
 echo "========================================================================"
 
 # 1. Update OS and install dependencies
@@ -16,9 +16,16 @@ if ! command -v rustc &> /dev/null; then
     source "$HOME/.cargo/env"
 fi
 
-# 3. Build release binary
-echo "Building scafonix-server in release mode..."
+# 3. Create dedicated system user and directories
+sudo useradd -r -s /bin/false vault || true
+sudo mkdir -p /var/lib/scafonix-vault
+sudo chown -R vault:vault /var/lib/scafonix-vault
+sudo chmod 700 /var/lib/scafonix-vault
+
+sudo mkdir -p /opt/scafonix-vault
 cargo build --release -p scafonix-server
+sudo cp target/release/scafonix-server /opt/scafonix-vault/
+sudo chown -R vault:vault /opt/scafonix-vault
 
 # 4. Install systemd service
 echo "Configuring systemd service..."
@@ -27,33 +34,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable scafonix-vault.service
 sudo systemctl restart scafonix-vault.service
 
-# 5. Configure Nginx Reverse Proxy (Port 80 -> Port 3000)
-echo "Configuring Nginx Reverse Proxy..."
-sudo tee /etc/nginx/sites-available/scafonix-vault > /dev/null << 'EOF'
-server {
-    listen 80;
-    server_name _;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOF
-
-sudo ln -sf /etc/nginx/sites-available/scafonix-vault /etc/nginx/sites-enabled/default
-sudo systemctl restart nginx
-
-# 6. Configure UFW Firewall
-sudo ufw allow 22/tcp || true
-sudo ufw allow 80/tcp || true
-sudo ufw allow 443/tcp || true
-sudo ufw allow 3000/tcp || true
-
 echo "========================================================================"
-echo "🎉 scafonix Vault 2nd Inspector is NOW LIVE on your Lightsail Instance!"
-echo "   Test with: curl http://localhost/health"
+echo "scafonix Vault 2nd Inspector is running!"
+echo "Test with: curl http://localhost:3000/health"
 echo "========================================================================"
