@@ -347,8 +347,8 @@
       Standard wallets use a single private key that can be drained if leaked. <strong>Scafonix Vault</strong> splits your key into <strong>2-of-2 MPC shares</strong>:
       you hold <strong>Share A</strong>, and the automated Inspector holds <strong>Share B</strong> (co-signing only when your AWS IAM JSON policy allows it).
       <ul style="margin: 6px 0 6px 18px; padding: 0;">
-        <li><strong>Step 1 (Generate Vault & Set Rules):</strong> Configure your AWS IAM rules (e.g. Uniswap V3 only, daily limits) and generate your vault.</li>
-        <li><strong>Step 2 (Connect to Uniswap & dApps):</strong> Use the universal <strong>WalletConnect v2</strong> connector on Tab 2. Copy the pairing URI from Uniswap, pair your Vault, and trade! All transactions are checked against your AWS IAM rules before co-signing.</li>
+        <li><strong>Step 1 (Generate Vault & Set Rules):</strong> Configure your AWS IAM rules (e.g. daily limits, whitelisted smart contracts) and generate your vault.</li>
+        <li><strong>Step 2 (Connect to Web3 dApps & DEXes):</strong> Use the universal <strong>WalletConnect v2</strong> connector on Tab 2. Copy the pairing URI from any dApp (DEX, Lending, NFT), pair your Vault, and transact with cryptographic policy enforcement.</li>
         <li><strong>Step 3 (Emergency Rescue):</strong> If the server ever goes offline, use your encrypted Share C voucher on Tab 3 for 100% unilateral recovery.</li>
       </ul>
     </div>
@@ -357,7 +357,7 @@
   <!-- Navigation Tabs -->
   <div class="nav-bar">
     <button id="tabCreate" class="nav-tab active" onclick="switchView('create')">1. Vault Generator & Rules</button>
-    <button id="tabConnect" class="nav-tab" onclick="switchView('connect')">2. dApp Connector (WalletConnect & Uniswap)</button>
+    <button id="tabConnect" class="nav-tab" onclick="switchView('connect')">2. dApp Connector (WalletConnect)</button>
     <button id="tabRecovery" class="nav-tab" onclick="switchView('recovery')">3. Disaster Recovery Signer</button>
   </div>
 
@@ -625,19 +625,19 @@
       <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
         <button class="btn btn-secondary btn-sm" onclick="copyText('resultVoucherText', 'Voucher copied')">Copy Voucher</button>
         <button class="btn btn-secondary btn-sm" onclick="downloadBackupJson()">Download Backup JSON</button>
-        <button class="btn btn-sm" style="background: #0b5cab; border-color: #0b5cab; color: #fff;" onclick="openDAppConnector()">Connect to Uniswap via WalletConnect &rarr;</button>
+        <button class="btn btn-sm" style="background: #0b5cab; border-color: #0b5cab; color: #fff;" onclick="openDAppConnector()">Connect to dApp via WalletConnect &rarr;</button>
       </div>
     </div>
   </div>
 
-  <!-- VIEW 2: WALLETCONNECT & UNISWAP CONNECTOR -->
+  <!-- VIEW 2: WALLETCONNECT & DAPP CONNECTOR -->
   <div id="panelConnect" class="view-panel">
     <!-- Section 1: Active Vault Signer Credentials -->
     <div class="section">
       <div class="section-header">1. Active Vault Signer Credentials</div>
 
       <div class="notice">
-        This connector bridges your Scafonix 2-of-2 MPC Vault to any Web3 dApp (including <strong>Uniswap</strong>, <strong>Aave</strong>, and <strong>OpenSea</strong>) via <strong>WalletConnect v2</strong>.<br>
+        This connector bridges your Scafonix 2-of-2 MPC Vault to any Web3 dApp (any DEX, Lending, or DeFi protocol) via <strong>WalletConnect v2</strong>.<br>
         Your Client Secret Share ($sk_A$) signs locally in this browser tab, while the 2nd Inspector co-signs only if the transaction adheres to your locked AWS IAM policy.
       </div>
 
@@ -662,16 +662,16 @@
       </div>
     </div>
 
-    <!-- Section 2: Pair with Uniswap or any Web3 dApp -->
+    <!-- Section 2: Pair with Any Web3 dApp (DEX, DeFi, NFT) -->
     <div class="section">
-      <div class="section-header">2. Pair with Uniswap or Any Web3 dApp (WalletConnect v2)</div>
+      <div class="section-header">2. Pair with Any Web3 dApp (WalletConnect v2)</div>
 
       <div class="notice" style="background: #fdfdfd; border-left: 3px solid #0b5cab;">
-        <strong>How to Connect to Uniswap:</strong><br>
-        1. Open <a href="https://app.uniswap.org" target="_blank" rel="noopener" style="color: #0b5cab; font-weight: 600; text-decoration: underline;">app.uniswap.org</a> in another tab.<br>
-        2. Click <strong>"Connect"</strong> &rarr; Select <strong>"WalletConnect"</strong> &rarr; Click <strong>"Copy to clipboard"</strong> (or copy the <code>wc:...</code> pairing link).<br>
+        <strong>How to Connect to Any dApp or DEX:</strong><br>
+        1. Open your chosen dApp (e.g. any DEX, lending market, or DeFi portal) in another tab or device.<br>
+        2. Click <strong>"Connect Wallet"</strong> &rarr; Select <strong>"WalletConnect"</strong> &rarr; Click <strong>"Copy to clipboard"</strong> (or copy the <code>wc:...</code> pairing link).<br>
         3. Paste the URI below and click <strong>"Pair with dApp"</strong>.<br>
-        4. Swap tokens on Uniswap! Uniswap will send transaction requests to this vault, which are automatically validated against your AWS IAM policy before co-signing.
+        4. Execute trades or contract interactions in the dApp! Transaction requests are transmitted to this vault and cryptographically checked against your locked AWS IAM policy before co-signing.
       </div>
 
       <div class="form-row">
@@ -693,11 +693,11 @@
           </tr>
           <tr>
             <th>Connected dApp</th>
-            <td id="wcDAppName" style="font-weight: 600;">Uniswap Interface</td>
+            <td id="wcDAppName" style="font-weight: 600;">Web3 Application</td>
           </tr>
           <tr>
             <th>dApp URL</th>
-            <td id="wcDAppUrl" class="mono-cell">https://app.uniswap.org</td>
+            <td id="wcDAppUrl" class="mono-cell">https://...</td>
           </tr>
           <tr>
             <th>Active Vault Address</th>
@@ -720,8 +720,8 @@
       </div>
 
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button class="btn btn-secondary btn-sm" onclick="simulateUniswapTx(true)">Simulate Whitelisted Swap (Uniswap V3 &le; 0.1 ETH)</button>
-        <button class="btn btn-secondary btn-sm" onclick="simulateUniswapTx(false)">Simulate Blocked Swap (Violates Daily Limit / Untrusted Router)</button>
+        <button class="btn btn-secondary btn-sm" onclick="simulateDAppTx(true)">Simulate Whitelisted Contract Call (&le; 0.1 ETH)</button>
+        <button class="btn btn-secondary btn-sm" onclick="simulateDAppTx(false)">Simulate Blocked Call (Untrusted Contract / Limit Exceeded)</button>
       </div>
 
       <div id="wcTxResultBox" style="margin-top: 14px; display: none;"></div>
@@ -1190,7 +1190,7 @@ window.onPolicyChanged = function() {
   }
 };
 
-// --- WALLETCONNECT V2 DAPP CONNECTOR (UNISWAP, AAVE, OPENSEA) ---
+// --- WALLETCONNECT V2 DAPP CONNECTOR (GENERIC WEB3 & DEXES) ---
 let wcClient = null;
 let activeWcSession = null;
 
@@ -1226,7 +1226,7 @@ async function initWalletConnectClient() {
       }
     });
 
-    // Session proposal listener (when pairing with Uniswap / dApps)
+    // Session proposal listener (when pairing with Web3 dApps / DEXes)
     wcClient.on('session_proposal', async (proposal) => {
       console.log('WalletConnect session proposal received:', proposal);
       await handleSessionProposal(proposal);
@@ -1415,7 +1415,7 @@ function updateWcSessionUi(session) {
 window.handlePairWalletConnect = async function() {
   const uri = document.getElementById('wcUriInput').value.trim();
   if (!uri || !uri.startsWith('wc:')) {
-    alert("Please enter a valid WalletConnect pairing URI starting with 'wc:'.\n\nExample:\n1. Open app.uniswap.org\n2. Click Connect -> WalletConnect -> Copy URI\n3. Paste it here.");
+    alert("Please enter a valid WalletConnect pairing URI starting with 'wc:'.\n\nExample:\n1. Open any dApp or DEX (e.g. Uniswap, CowSwap, Curve, Aave)\n2. Click Connect -> WalletConnect -> Copy URI\n3. Paste it here.");
     return;
   }
 
@@ -1460,18 +1460,18 @@ window.handleDisconnectWc = async function() {
   }
 };
 
-window.simulateUniswapTx = async function(isWhitelisted) {
+window.simulateDAppTx = async function(isWhitelisted) {
   const resultBox = document.getElementById('wcTxResultBox');
   resultBox.style.display = 'block';
 
   const vault = (document.getElementById('wcVaultAddress').value || '').trim() || '0x71C...YourVault';
   const recipient = isWhitelisted
-    ? '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45' // Uniswap V3 SwapRouter
+    ? '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45' // Whitelisted DeFi Protocol Contract
     : '0x9999999999999999999999999999999999999999'; // Untrusted Address
   const amountEth = isWhitelisted ? '0.05' : '1.50';
 
   resultBox.className = "notice";
-  resultBox.innerHTML = `<strong>Simulating Transaction from dApp:</strong><br>Vault: ${vault}<br>Target Router: ${recipient} ${isWhitelisted ? '(Uniswap V3 SwapRouter)' : '(Unknown Recipient)'}<br>Value: ${amountEth} ETH<br>Evaluating against AWS IAM Policy...`;
+  resultBox.innerHTML = `<strong>Simulating Transaction from dApp:</strong><br>Vault: ${vault}<br>Target Contract: ${recipient} ${isWhitelisted ? '(Whitelisted Contract)' : '(Unknown Target)'}<br>Value: ${amountEth} ETH<br>Evaluating against AWS IAM Policy...`;
 
   setTimeout(() => {
     if (isWhitelisted) {
