@@ -424,6 +424,12 @@
             <button class="btn btn-secondary btn-sm" onclick="resetCurrentTemplate()">Reset to Template</button>
           </div>
         </div>
+
+        <!-- Real-time Placeholder / Security Validation Warning -->
+        <div id="policyPlaceholderWarning" class="notice notice-danger" style="margin-top: 10px; margin-bottom: 0; display: none;">
+          <strong>ACTION REQUIRED — PLACEHOLDER ADDRESS DETECTED:</strong><br>
+          <span id="policyPlaceholderMsg">Your policy contains dummy template placeholder address(es). You must replace them with your actual target wallet or smart contract addresses before generating the vault.</span>
+        </div>
       </div>
 
       <!-- Critical Backup & Record Reminder -->
@@ -907,7 +913,7 @@ const POLICY_TEMPLATES = [
         Sid: "AllowOnlyDesignatedColdStorage",
         Effect: "Allow",
         Action: ["web3:TransferETH"],
-        Resource: ["0x70997970C51812dc3A010C7d01b50e0d17dc79C8"],
+        Resource: ["0xabcd1234abcd1234abcd1234abcd1234abcd1234"],
         Condition: {
           NumericEquals: { "web3:ChainId": 1 }
         }
@@ -927,9 +933,9 @@ const POLICY_TEMPLATES = [
         Effect: "Allow",
         Action: ["web3:TransferETH"],
         Resource: [
-          "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-          "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-          "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+          "0xabcd1234abcd1234abcd1234abcd1234abcd0001",
+          "0xabcd1234abcd1234abcd1234abcd1234abcd0002",
+          "0xabcd1234abcd1234abcd1234abcd1234abcd0003"
         ],
         Condition: {
           NumericLessThanEquals: { "web3:ValueWei": 1000000000000000000 }
@@ -1179,9 +1185,49 @@ window.copyPolicyJson = function() {
   });
 };
 
+// Check for dummy template placeholder addresses (e.g. 0xabcd1234..., 0x11111111...)
+window.findPolicyPlaceholders = function(policyObjOrText) {
+  const text = typeof policyObjOrText === 'string' ? policyObjOrText : JSON.stringify(policyObjOrText);
+  const found = [];
+
+  // Match 0x followed by hex characters
+  const addrRegex = /0x[a-fA-F0-9]{40}/g;
+  const matches = text.match(addrRegex) || [];
+
+  matches.forEach(addr => {
+    const lower = addr.toLowerCase();
+    if (
+      lower.startsWith('0xabcd1234') ||
+      lower.startsWith('0x12345678') ||
+      lower.startsWith('0x99999999') ||
+      lower.startsWith('0x11111111') ||
+      lower.startsWith('0xabcdef') ||
+      lower === '0x0000000000000000000000000000000000000001'
+    ) {
+      if (!found.includes(addr)) found.push(addr);
+    }
+  });
+
+  return found;
+};
+
 window.onPolicyChanged = function() {
-  if (!wasmLoaded) return;
   const jsonText = document.getElementById('policyJsonInput').value;
+  const warnBox = document.getElementById('policyPlaceholderWarning');
+  const warnMsg = document.getElementById('policyPlaceholderMsg');
+
+  // Check for dummy placeholder addresses
+  const placeholders = window.findPolicyPlaceholders(jsonText);
+  if (placeholders.length > 0) {
+    if (warnBox && warnMsg) {
+      warnMsg.innerHTML = `Your policy contains dummy template placeholder address(es):<br><code style="color: #b00;">${placeholders.join(', ')}</code><br><strong>You must replace them with your actual target wallet or smart contract addresses before generating the vault.</strong>`;
+      warnBox.style.display = 'block';
+    }
+  } else {
+    if (warnBox) warnBox.style.display = 'none';
+  }
+
+  if (!wasmLoaded) return;
   try {
     const hash = compute_policy_hash_wasm(jsonText);
     document.getElementById('policyHashDisplay').innerText = hash;
@@ -1505,6 +1551,22 @@ window.handleCreateVault = async function() {
 
   const serverUrl = document.getElementById('inspectorUrlInput').value.replace(/\/$/, "");
   const policyText = document.getElementById('policyJsonInput').value;
+
+  // Strict check: Block dummy template placeholder addresses
+  const placeholders = window.findPolicyPlaceholders(policyText);
+  if (placeholders.length > 0) {
+    alert(
+      "CANNOT GENERATE VAULT WITH PLACEHOLDER ADDRESSES!\n\n" +
+      "Your policy contains sample placeholder address(es):\n" +
+      placeholders.join("\n") + "\n\n" +
+      "Because the security policy is permanently baked into the 2-of-2 MPC key, " +
+      "you must replace these sample placeholders with your actual destination wallet " +
+      "or contract address before generating the vault."
+    );
+    const warnBox = document.getElementById('policyPlaceholderWarning');
+    if (warnBox) warnBox.scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
 
   let policy;
   try {
