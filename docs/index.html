@@ -1401,15 +1401,15 @@ async function initWalletConnectClient() {
   }
 
   try {
-    wcClient = await window.ScafonixWC.initWeb3Wallet({
-      projectId: 'b0122fa7a78fd35bcd1f0a8e7bfd4e73',
-      metadata: {
+    wcClient = await window.ScafonixWC.initWeb3Wallet(
+      'b0122fa7a78fd35bcd1f0a8e7bfd4e73',
+      {
         name: 'Scafonix Vault',
         description: 'Programmable 2-of-2 MPC Vault (pEOA)',
         url: 'https://vault.scafonix.com',
         icons: ['https://vault.scafonix.com/favicon.svg']
       }
-    });
+    );
 
     // Session proposal listener (when pairing with Web3 dApps / DEXes)
     wcClient.on('session_proposal', async (proposal) => {
