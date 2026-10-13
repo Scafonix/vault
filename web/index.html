@@ -634,9 +634,15 @@
       <div class="section-header">1. MetaMask Snap — Direct Wallet Integration</div>
       
       <div class="notice">
-        Connect your scafonix Vault directly to MetaMask via the official Snap plugin.
+        Connect your Scafonix Vault directly to MetaMask via the official Snap plugin.
         Your Client Secret Share (sk_A) stays isolated inside MetaMask's encrypted storage sandbox,
         while all transactions are co-signed by the 2nd Inspector (vault-api.scafonix.com) before broadcast.
+      </div>
+
+      <div class="notice" style="background: #fffdf5; border-color: #e0d090; color: #705510; font-size: 0.78rem; line-height: 1.45;">
+        <strong>Developer Environment Note (MetaMask Allowlist):</strong><br>
+        Production MetaMask only permits Snaps that have been audited and allowlisted in the official MetaMask Snaps Directory.
+        To test and run this Snap before public directory inclusion, please use <strong><a href="https://metamask.io/flask/" target="_blank" rel="noopener" style="color: #705510; text-decoration: underline;">MetaMask Flask</a></strong> (the official developer preview of MetaMask).
       </div>
 
       <div class="form-row">
@@ -1229,7 +1235,11 @@ window.handleConnectSnap = async function() {
     alert("MetaMask Snap installed successfully!");
     await window.handleGetSnapVault();
   } catch (e) {
-    alert("Failed to connect Snap: " + e.message);
+    if (e.message && e.message.includes('not on the allowlist')) {
+      alert("MetaMask Allowlist Notice:\n\nProduction MetaMask only allows Snaps published to the official MetaMask Snaps Directory.\n\nTo test or run custom community Snaps, please use MetaMask Flask (the developer edition of MetaMask):\nhttps://metamask.io/flask/");
+    } else {
+      alert("Failed to connect Snap: " + e.message);
+    }
   } finally {
     btn.disabled = false;
     btn.innerText = "Connect & Install Snap";
