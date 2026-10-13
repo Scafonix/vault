@@ -1,122 +1,162 @@
-# 🛡️ scafonix Vault
+# scafonix Vault
 
-> **The Programmable MPC Vault (pEOA)**  
-> *Zero Mnemonic, Mathematically Policy-Bound, Pure EOA (Zero Smart Contracts)*
+A non-custodial 2-Party ECDSA programmable vault (pEOA) for EVM-compatible blockchains.
 
-[![License: BSL 1.1](https://img.shields.io/badge/License-BUSL--1.1-blue.svg)](LICENSE)
-[![Patent: Pending](https://img.shields.io/badge/Patent-KR%2010--2026--0134084-green.svg)](#patent-foundation)
-[![Rust](https://img.shields.io/badge/Rust-1.80%2B-orange.svg)](https://www.rust-lang.org/)
-[![WASM](https://img.shields.io/badge/WebAssembly-secp256k1-purple.svg)](web/pkg)
-
----
-
-## ⚡ Quick Links
-* 🌐 **Web Vault**: [vault.scafonix.com](https://vault.scafonix.com)
-* 🔒 **Official Inspector API**: `https://vault-api.scafonix.com`
-* 💾 **100% Offline Air-Gap Tool**: [`scafonix-vault-airgap.html`](docs/scafonix-vault-airgap.html)
-* 📜 **Patent Application**: KR `10-2026-0134084` (*"분산키 및 결합 은닉 난수 기반의 비조립식 암호 서명 시스템 및 그 방법"*, Inventor: 김부연)
+[![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-informational.svg)](LICENSE)
+[![Patent: Pending](https://img.shields.io/badge/patent-KR%2010--2026--0134084-informational.svg)](#patent-notice)
+[![Rust](https://img.shields.io/badge/rust-1.80%2B-informational.svg)](https://www.rust-lang.org/)
+[![WebAssembly](https://img.shields.io/badge/wasm-secp256k1-informational.svg)](web/pkg)
 
 ---
 
-## 💡 What is pEOA (Programmable EOA)?
+## Overview
 
-Until now, Web3 users faced a painful dilemma:
-1. **Standard EOA (MetaMask / Ledger):** 0 gas setup, standard compatibility, but **vulnerable to phishing, blind signing, and mnemonic paper theft**.
-2. **Smart Contract Accounts (ERC-4337):** Programmable rules, but **expensive deployment gas, multi-chain fragmentation, and bridge incompatibilities**.
+scafonix Vault implements **pEOA (Programmable Externally Owned Account)**: a standard Ethereum address where execution policies (e.g., daily spending limits, contract whitelists) are cryptographically bound to an MPC key share rather than enforced via smart contract bytecode.
 
-**scafonix Vault introduces pEOA:** A **pure, standard Ethereum address** where an AWS IAM-style security policy is **cryptographically baked into an MPC key share**.
+Transactions are signed using a 2-of-2 threshold signature scheme. Neither party possesses the full private key at any point.
 
-| Feature | Standard EOA (MetaMask) | ERC-4337 Smart Account | scafonix Vault (pEOA) |
-| :--- | :--- | :--- | :--- |
-| **On-Chain Contract?** | No (0 gas setup) | Yes (Gas required to deploy) | **No (0 gas setup)** |
-| **Mnemonic Storage?** | 12-24 Words (Theft risk) | Varied (Admin key) | **Zero Mnemonic (Never exists)** |
-| **Phishing / Hack Protection**| None (Blind signing) | Contract logic | **Enclave Policy Inspector (Veto)** |
-| **Server Compromise Risk** | N/A | Paymaster dependent | **Zero (Server cannot sign alone)** |
-| **Disaster Recovery** | Paper Seed Words | Social Guardians | **Encrypted Voucher C + Patent Blinded Nonce Sign** |
+* **No Smart Contract Deployment:** Standard secp256k1 EOA address. Zero deployment gas, universal EVM chain compatibility, and native bridge support.
+* **Zero Mnemonic Generation:** Private keys and seed phrases are never generated, transmitted, or assembled in plaintext.
+* **Deterministic Policy Commitment:** The policy hash $h_p$ is added directly into the second key share ($sk_B = sk_{B\_seed} + h_p$). Altering the policy produces a different address.
+* **Server Veto-Only Authorization:** The second party (Inspector) can only approve or veto transactions against the agreed policy. It cannot redirect funds or sign arbitrary transactions.
+* **Unilateral Disaster Recovery:** An encrypted backup voucher (Share C) allows the user to sign emergency exit transactions locally without server availability, using a blinded nonce scheme (Patent KR 10-2026-0134084).
 
 ---
 
-## 🏗️ Cryptographic Architecture
+## Cryptographic Specification
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        scafonix pEOA 2-of-2 Architecture               │
-│                                                                        │
-│  [Party A: Client / Phone Passkey]                                     │
-│    - Private Share: sk_A (Kept in local device memory/Passkey)         │
-│    - Public Commitment: Q_A = sk_A * G (Transmitted to Inspector)      │
-│                                                                        │
-│  [Party B: 2nd Inspector / Enclave]                                    │
-│    - Canonical Policy Hash: h_p = SHA256(Deterministic_IAM_JSON)       │
-│    - Private Share: sk_B = sk_B_seed + h_p                             │
-│    - Public Commitment: Q_B = sk_B * G (Returned to Client)            │
-│                                                                        │
-│  [On-Chain Master EOA Address]                                         │
-│    - Joint Public Key: Q = Q_A + Q_B = (sk_A + sk_B) * G               │
-│    - Vault Address: keccak256(Q)[12..31] (EIP-55 Checksummed)         │
-│                                                                        │
-│  [Disaster Recovery Ticket (Share C)]                                  │
-│    - Voucher C = AES-256-GCM(sk_B, key: UserPassword)                  │
-│    - Output ONCE to user, NEVER stored on scafonix servers.            │
-└────────────────────────────────────────────────────────────────────────┘
+```text
++------------------------------------------------------------------------+
+|                      scafonix 2-of-2 MPC Topology                      |
+|                                                                        |
+|  Party A (Client / Passkey)                                            |
+|    - Private scalar: sk_A (Kept in client memory / Secure Enclave)     |
+|    - Public commitment: Q_A = sk_A * G                                 |
+|                                                                        |
+|  Party B (Inspector / Server)                                          |
+|    - Policy hash: h_p = SHA256(Canonical_IAM_JSON)                    |
+|    - Private scalar: sk_B = sk_B_seed + h_p                            |
+|    - Public commitment: Q_B = sk_B * G                                 |
+|                                                                        |
+|  Master On-Chain EOA                                                   |
+|    - Joint public key: Q = Q_A + Q_B = (sk_A + sk_B) * G               |
+|    - Address: keccak256(Q)[12..31] (EIP-55 formatted)                  |
+|                                                                        |
+|  Emergency Recovery Voucher (Share C)                                  |
+|    - Voucher = AES-256-GCM(sk_B, key: Argon2id(UserPassword))          |
+|    - Stored client-side only; never retained by the Inspector          |
++------------------------------------------------------------------------+
 ```
 
-### Key Security Guarantees
-1. **Server Veto-Only Power**: The client's partial signature $s_A$ is cryptographically bound to the raw transaction hash $e$. The 2nd inspector **cannot redirect, modify, or steal** any funds. Its only power is to **refuse to sign** if a transaction violates the user's spending policy.
-2. **Zero Plaintext Key Assembly**: Even during disaster recovery, the patent algorithm computes $s = s_{blind} \cdot (k \beta)^{-1} \pmod N$, preventing plaintext reconstitution in memory.
+### Partial Signing Protocol
+1. Client constructs raw transaction $tx$ and computes message digest $e = \text{keccak256}(tx)$.
+2. Client verifies local policy, signs $e$ using $sk_A$, and transmits $(tx, \text{proof})$ to the Inspector.
+3. Inspector independently verifies that $tx$ satisfies the canonical policy document.
+4. If approved, Inspector produces partial signature using $sk_B$.
+5. The combined signature $(r, s, v)$ verifies against $Q$ on any standard EVM execution client.
 
 ---
 
-## 🚀 "Don't Trust, Verify" — Self-Hosting Guide
+## Workspace Structure
 
-If you do not wish to rely on scafonix infrastructure, you can run the entire 2nd Inspector on your own server or local machine.
+The project is organized as a Cargo workspace:
 
-### 1. Run Your Own 2nd Inspector Server
+* [`crates/scafonix-crypto`](crates/scafonix-crypto): secp256k1 scalar arithmetic, zero-allocation memory zeroization, AES-256-GCM voucher routines, and patent-based non-assembled signing.
+* [`crates/scafonix-policy`](crates/scafonix-policy): Deterministic canonical JSON serialization and AWS IAM-style transaction condition evaluators.
+* [`crates/scafonix-vault`](crates/scafonix-vault): High-level client and enclave orchestration, 2-party DKG factory, and end-to-end policy enforcement logic.
+* [`crates/scafonix-server`](crates/scafonix-server): Axum-based HTTP 2nd Inspector daemon with persistent SQLite storage.
+* [`crates/scafonix-wasm`](crates/scafonix-wasm): WebAssembly compilation target exposing in-browser key generation, canonical hashing, and emergency signing.
+* [`crates/scafonix-cli`](crates/scafonix-cli): Command-line interface for local verification and automated scenario simulation.
+* [`web`](web) / [`docs`](docs): Minimal, dependency-free web interface and standalone single-file offline air-gap tool (`scafonix-vault-airgap.html`).
+
+---
+
+## Getting Started
+
+### Prerequisites
+* Rust 1.80 or later (`cargo`, `rustc`)
+* `wasm-pack` (optional, for compiling WebAssembly)
+* SQLite 3 (bundled with `rusqlite`)
+
+### Building from Source
 ```bash
 git clone https://github.com/Scafonix/vault.git
 cd vault
-cargo run --release -p scafonix-server
+cargo build --release
 ```
-The server will start on `http://127.0.0.1:3000`.
 
-### 2. Connect via Web or Standalone HTML
-Open [vault.scafonix.com](https://vault.scafonix.com) (or double-click `docs/scafonix-vault-airgap.html`), expand **Advanced Network Settings**, and change the Inspector URL to:
-```text
-http://127.0.0.1:3000
-```
-Your vault will now operate with 100% self-sovereignty.
+### Running the Test Suite
+The workspace includes unit tests and end-to-end adversarial defense scenarios (normal approval, phishing address rejection, spending limit violation, and disaster recovery):
 
----
-
-## 📂 Repository Structure
-
-* `crates/scafonix-policy`: Deterministic AWS IAM Web3 policy parser, canonical JSON serializer, and $h_p$ hash generator.
-* `crates/scafonix-crypto`: secp256k1 elliptic curve scalar math, zero-allocation memory zeroization, AES-256-GCM voucher encryption, and Patent KR `10-2026-0134084` zero-assembly signature.
-* `crates/scafonix-vault`: High-level orchestration for ClientVault, EnclaveGuardian, and 2-Party DKG factory.
-* `crates/scafonix-server`: Axum-based HTTP 2nd Inspector server (`/health`, `/api/v1/dkg`, `/api/v1/cosign`).
-* `crates/scafonix-wasm`: WebAssembly engine compiled for client browsers.
-* `crates/scafonix-cli`: Utility CLI for creating vaults and running automated E2E simulations.
-* `web/` & `docs/`: Minimalist, zero-dependency client tool and Ian Coleman style standalone offline HTML.
-
----
-
-## 🧪 Testing
-
-Run the full cryptographic test suite:
 ```bash
 cargo test --workspace
 ```
 
-Run end-to-end policy defense scenarios (Normal approval, Phishing block, Daily limit exceeded block, Disaster recovery escape):
+---
+
+## Self-Hosting the Inspector
+
+For complete autonomy, you may run your own 2nd Inspector daemon on local hardware or private cloud infrastructure.
+
+### 1. Launch the Server Daemon
 ```bash
-cargo test --test e2e_scenarios
+cargo run --release -p scafonix-server
+```
+By default, the server binds to `0.0.0.0:3000` and creates a persistent SQLite database at `./vault.db` (or `/var/lib/scafonix-vault/vault.db` in production Linux environments).
+
+Environment configuration:
+```bash
+PORT=3000
+DATABASE_PATH=/var/lib/scafonix-vault/vault.db
+RUST_LOG=info
+```
+
+### 2. Connect Your Client
+Open [vault.scafonix.com](https://vault.scafonix.com) (or the offline air-gap file `docs/scafonix-vault-airgap.html`), expand **Advanced Network Settings**, and specify your self-hosted endpoint:
+```text
+http://127.0.0.1:3000
 ```
 
 ---
 
-## 📜 License & Patent Notice
+## Deployment & Production Notes
 
-* **Software License:** [Business Source License 1.1 (BSL 1.1)](LICENSE). Free for personal use, security auditing, non-commercial evaluation, and self-hosted personal vaults. Commercial SaaS hosting or competitive services require a separate commercial license.
-* **Patent Application:** Korean Patent Application No. `10-2026-0134084` (*"분산키 및 결합 은닉 난수 기반의 비조립식 암호 서명 시스템 및 그 방법"*).
+A systemd service unit and setup script are provided in [`deploy/`](deploy):
+
+```bash
+# Setup systemd service and directories
+sudo ./deploy/setup_server.sh
+```
+
+Nginx configuration example:
+```nginx
+server {
+    listen 80;
+    server_name vault-api.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+---
+
+## Patent Notice
+
+This implementation incorporates technologies described in Korean Patent Application No. `10-2026-0134084` (*"분산키 및 결합 은닉 난수 기반의 비조립식 암호 서명 시스템 및 그 방법"*, Inventor: 김부연).
+
+---
+
+## License
+
+This project is licensed under the [Business Source License 1.1 (BSL 1.1)](LICENSE).
+
+* **Non-Commercial & Self-Hosting:** Free for personal use, security audits, academic research, and self-hosted personal vaults.
+* **Commercial Services:** Commercial SaaS hosting or competitive services require a commercial license agreement.
 
 Copyright (c) 2026 Scafonix. All rights reserved.
