@@ -119,4 +119,4 @@ cargo test --test e2e_scenarios
 * **Software License:** [Business Source License 1.1 (BSL 1.1)](LICENSE). Free for personal use, security auditing, non-commercial evaluation, and self-hosted personal vaults. Commercial SaaS hosting or competitive services require a separate commercial license.
 * **Patent Application:** Korean Patent Application No. `10-2026-0134084` (*"분산키 및 결합 은닉 난수 기반의 비조립식 암호 서명 시스템 및 그 방법"*).
 
-Copyright (c) 2026 Scafonix Inc. All rights reserved.
+Copyright (c) 2026 Scafonix. All rights reserved.
