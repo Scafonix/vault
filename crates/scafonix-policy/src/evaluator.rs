@@ -78,6 +78,22 @@ impl PolicyDocument {
             }
         }
 
+        if let Some(num_gt) = &cond.numeric_greater_than {
+            if let Some(min_val) = num_gt.get("web3:ValueWei") {
+                if tx.value_wei <= *min_val {
+                    return false;
+                }
+            }
+        }
+
+        if let Some(num_gte) = &cond.numeric_greater_than_equals {
+            if let Some(min_val) = num_gte.get("web3:ValueWei") {
+                if tx.value_wei < *min_val {
+                    return false;
+                }
+            }
+        }
+
         if let Some(num_eq) = &cond.numeric_equals {
             if let Some(req_chain_id) = num_eq.get("web3:ChainId") {
                 if tx.chain_id != *req_chain_id {

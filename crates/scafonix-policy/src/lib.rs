@@ -57,4 +57,56 @@ mod tests {
         };
         assert_eq!(policy.evaluate(&tx_wrong_chain), Err(EvaluationError::NoMatchingAllow));
     }
+
+    #[test]
+    fn test_full_access_and_explicit_deny() {
+        // Policy: Allow all, but Deny > 10 ETH
+        let mut gt = std::collections::BTreeMap::new();
+        gt.insert("web3:ValueWei".to_string(), 10_000_000_000_000_000_000); // 10 ETH
+
+        let policy = PolicyDocument {
+            version: "scafonix-2026-v1".to_string(),
+            vault_id: "vault-full".to_string(),
+            statement: vec![
+                Statement {
+                    sid: Some("AllowAllTransactions".to_string()),
+                    effect: Effect::Allow,
+                    action: vec!["*".to_string()],
+                    resource: vec!["*".to_string()],
+                    condition: None,
+                },
+                Statement {
+                    sid: Some("DenyDrainOver10Eth".to_string()),
+                    effect: Effect::Deny,
+                    action: vec!["*".to_string()],
+                    resource: vec!["*".to_string()],
+                    condition: Some(Condition {
+                        numeric_greater_than: Some(gt),
+                        ..Default::default()
+                    }),
+                },
+            ],
+        };
+
+        // 1. Regular 1 ETH Tx -> Allowed
+        let tx_normal = TransactionContext {
+            action: "web3:TransferETH".to_string(),
+            recipient: "0x1234567890123456789012345678901234567890".to_string(),
+            value_wei: 1_000_000_000_000_000_000,
+            chain_id: 1,
+        };
+        assert!(policy.evaluate(&tx_normal).is_ok());
+
+        // 2. Huge 15 ETH Tx -> ExplicitDeny overrides Allow
+        let tx_huge = TransactionContext {
+            action: "web3:TransferETH".to_string(),
+            recipient: "0x1234567890123456789012345678901234567890".to_string(),
+            value_wei: 15_000_000_000_000_000_000,
+            chain_id: 1,
+        };
+        assert_eq!(
+            policy.evaluate(&tx_huge),
+            Err(EvaluationError::ExplicitDeny(Some("DenyDrainOver10Eth".to_string())))
+        );
+    }
 }

@@ -16,6 +16,7 @@ impl PolicyTemplates {
             numeric_less_than_equals: Some(num_lte),
             numeric_equals: Some(num_eq),
             string_equals: None,
+            ..Default::default()
         };
 
         PolicyDocument {
@@ -48,6 +49,7 @@ impl PolicyTemplates {
             numeric_less_than_equals: Some(num_lte),
             numeric_equals: Some(num_eq),
             string_equals: None,
+            ..Default::default()
         };
 
         let resources = recipients

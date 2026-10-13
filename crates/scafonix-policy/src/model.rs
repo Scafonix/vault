@@ -14,6 +14,12 @@ pub struct Condition {
     #[serde(rename = "NumericLessThanEquals", skip_serializing_if = "Option::is_none")]
     pub numeric_less_than_equals: Option<BTreeMap<String, u64>>,
 
+    #[serde(rename = "NumericGreaterThan", skip_serializing_if = "Option::is_none")]
+    pub numeric_greater_than: Option<BTreeMap<String, u64>>,
+
+    #[serde(rename = "NumericGreaterThanEquals", skip_serializing_if = "Option::is_none")]
+    pub numeric_greater_than_equals: Option<BTreeMap<String, u64>>,
+
     #[serde(rename = "NumericEquals", skip_serializing_if = "Option::is_none")]
     pub numeric_equals: Option<BTreeMap<String, u64>>,
 

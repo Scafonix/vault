@@ -475,6 +475,7 @@
           <div style="flex: 1; min-width: 140px;">
             <select id="templateCategorySelect" onchange="filterTemplates()" style="font-size: 0.8rem; padding: 6px 8px;">
               <option value="all">All Categories</option>
+              <option value="general">General & Full Access</option>
               <option value="spending">Spending Limits</option>
               <option value="whitelist">Whitelists & Recipients</option>
               <option value="defi">DeFi & DEX Protocols</option>
@@ -836,6 +837,49 @@ let currentVaultData = null;
 
 // Comprehensive Library of Web3 Security Policy Templates
 const POLICY_TEMPLATES = [
+  {
+    id: "full_access_standard",
+    category: "general",
+    title: "Full Access (Standard EOA Wallet Mode)",
+    desc: "Default Allow for all Web3 actions, contracts, and EVM chains without spending limits.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_full_access_01",
+      Statement: [{
+        Sid: "AllowAllWeb3Transactions",
+        Effect: "Allow",
+        Action: ["*"],
+        Resource: ["*"]
+      }]
+    }
+  },
+  {
+    id: "general_safety_cap_10_eth",
+    category: "general",
+    title: "General Web3 with Safety Guard (Recommended)",
+    desc: "Permits all standard dApp and DEX calls, but explicitly blocks extreme drains over 10.0 ETH.",
+    policy: {
+      Version: "scafonix-2026-v1",
+      VaultId: "vault_general_guarded_01",
+      Statement: [
+        {
+          Sid: "AllowGeneralWeb3Usage",
+          Effect: "Allow",
+          Action: ["*"],
+          Resource: ["*"]
+        },
+        {
+          Sid: "DenyExtremeDrainOver10Eth",
+          Effect: "Deny",
+          Action: ["*"],
+          Resource: ["*"],
+          Condition: {
+            NumericGreaterThan: { "web3:ValueWei": 10000000000000000000 }
+          }
+        }
+      ]
+    }
+  },
   {
     id: "daily_01_eth",
     category: "spending",
