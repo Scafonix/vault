@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>scafonix vault — Programmable MPC Vault (pEOA)</title>
+  <title>scafonix Vault — Programmable MPC Vault (pEOA)</title>
   <style>
     :root {
       --bg: #ffffff;
@@ -35,7 +35,7 @@
     }
 
     .container {
-      max-width: 800px;
+      max-width: 820px;
       margin: 0 auto;
       background: var(--bg);
       border: 1px solid var(--border);
@@ -100,6 +100,14 @@
       margin-bottom: -1px;
     }
 
+    /* View Panels */
+    .view-panel {
+      display: none;
+    }
+    .view-panel.active {
+      display: block;
+    }
+
     /* Sections */
     .section {
       margin-bottom: 20px;
@@ -129,15 +137,15 @@
       display: flex;
       align-items: flex-start;
       gap: 8px;
-      margin-bottom: 6px;
-      font-size: 0.85rem;
+      margin-bottom: 8px;
+      font-size: 0.82rem;
       cursor: pointer;
     }
     .radio-option input {
       margin-top: 3px;
     }
 
-    input[type="text"], input[type="password"], textarea {
+    input[type="text"], input[type="password"], textarea, select {
       width: 100%;
       padding: 8px 10px;
       border: 1px solid var(--border);
@@ -147,7 +155,7 @@
       color: var(--text);
       background: #ffffff;
     }
-    input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
+    input[type="text"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
       outline: none;
       border-color: #333333;
     }
@@ -207,7 +215,7 @@
     }
     .data-table th {
       background: var(--panel-bg);
-      width: 180px;
+      width: 210px;
       font-weight: 600;
       color: #444444;
     }
@@ -219,6 +227,32 @@
       font-size: 1rem;
       font-weight: 700;
       color: #0b5cab;
+    }
+
+    /* Guide Table */
+    .guide-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 0.78rem;
+    }
+    .guide-table th, .guide-table td {
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .guide-table th {
+      background: #eeeeee;
+      font-weight: 600;
+      color: #333333;
+    }
+
+    code {
+      font-family: var(--mono);
+      background: #f0f0f0;
+      padding: 1px 4px;
+      font-size: 0.85em;
     }
 
     /* Utilitarian Notice Banners */
@@ -270,14 +304,32 @@
       justify-content: space-between;
       align-items: center;
     }
-
-    .view-panel {
-      display: none;
-    }
-    .view-panel.active {
-      display: block;
-    }
   </style>
+
+  <script>
+    function switchView(view) {
+      document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.view-panel').forEach(function(p) { p.classList.remove('active'); });
+
+      if (view === 'create') {
+        var tab = document.getElementById('tabCreate');
+        if (tab) tab.classList.add('active');
+        var panel = document.getElementById('panelCreate');
+        if (panel) panel.classList.add('active');
+      } else if (view === 'snap') {
+        var tab = document.getElementById('tabSnap');
+        if (tab) tab.classList.add('active');
+        var panel = document.getElementById('panelSnap');
+        if (panel) panel.classList.add('active');
+      } else if (view === 'recovery') {
+        var tab = document.getElementById('tabRecovery');
+        if (tab) tab.classList.add('active');
+        var panel = document.getElementById('panelRecovery');
+        if (panel) panel.classList.add('active');
+      }
+    }
+    window.switchView = switchView;
+  </script>
 </head>
 <body>
 
@@ -294,22 +346,36 @@
     </div>
   </header>
 
+  <!-- How It Works (Beginner Developer Guide) -->
+  <div class="notice" style="background: #fbfbfb; border-left: 3px solid #222;">
+    <div style="font-weight: 700; margin-bottom: 4px;">How the 2-of-2 Programmable MPC Vault Works:</div>
+    <div style="font-size: 0.82rem; color: #444; line-height: 1.45;">
+      Standard Ethereum wallets rely on a single private key: if leaked or phished, your assets are compromised.
+      <strong>scafonix Vault</strong> replaces this single point of failure with a <strong>2-of-2 Multi-Party Computation (MPC)</strong> key:
+      <ul style="margin: 6px 0 6px 18px; padding: 0;">
+        <li><strong>Share A (Client / You):</strong> Stored locally in your browser or MetaMask Snap. Never leaves your hardware.</li>
+        <li><strong>Share B (Policy Inspector):</strong> Held by an automated co-signer (vault-api.scafonix.com). Only signs if transactions strictly comply with your AWS IAM-style JSON security policy.</li>
+        <li><strong>Share C (Emergency Recovery Voucher):</strong> Encrypted with your password. If the inspector ever shuts down, you can recover 100% of your funds locally without anyone's permission.</li>
+      </ul>
+    </div>
+  </div>
+
   <!-- Navigation Tabs -->
   <div class="nav-bar">
-    <button class="nav-tab active" onclick="switchView('create')">Vault Generator</button>
-    <button class="nav-tab" onclick="switchView('snap')">MetaMask Snap Integration</button>
-    <button class="nav-tab" onclick="switchView('recovery')">Disaster Recovery Signer</button>
+    <button id="tabCreate" class="nav-tab active" onclick="switchView('create')">Vault Generator</button>
+    <button id="tabSnap" class="nav-tab" onclick="switchView('snap')">MetaMask Snap Integration</button>
+    <button id="tabRecovery" class="nav-tab" onclick="switchView('recovery')">Disaster Recovery Signer</button>
   </div>
 
   <!-- VIEW 1: VAULT GENERATOR -->
   <div id="panelCreate" class="view-panel active">
     <!-- Step 1: Policy Selection -->
     <div class="section">
-      <div class="section-header">1. Security Policy Specification</div>
+      <div class="section-header">1. Security Policy Specification (AWS IAM JSON Rules)</div>
       
       <div class="notice">
         The policy below is canonically hashed and cryptographically bound to the 2nd key share ($sk_B = sk_{B\_seed} + h_p$).
-        Neither scafonix nor the user can modify or relax this policy post-generation.
+        Neither scafonix nor any user can modify, bypass, or relax this policy post-generation.
       </div>
 
       <div class="form-row">
@@ -322,7 +388,19 @@
         <label class="radio-option">
           <input type="radio" name="policy_preset" value="uniswap" onchange="updatePolicyPreset()">
           <div>
-            <strong>Whitelisted DEX Router Only</strong> — Restricts calls strictly to verified Uniswap V3 Router.
+            <strong>Whitelisted DEX Router Only</strong> — Restricts smart contract calls strictly to Uniswap V3 SwapRouter.
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="policy_preset" value="whitelist" onchange="updatePolicyPreset()">
+          <div>
+            <strong>Whitelisted Cold Wallet Only</strong> — Restricts native ETH transfers strictly to a designated cold wallet address.
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="policy_preset" value="deny_contracts" onchange="updatePolicyPreset()">
+          <div>
+            <strong>Contract-Call Lockdown</strong> — Allows native ETH transfers, but explicitly <code>Deny</code> all smart contract calls.
           </div>
         </label>
         <label class="radio-option">
@@ -335,11 +413,107 @@
 
       <div class="form-row">
         <label for="policyJsonInput">Canonical Policy Document (JSON):</label>
-        <textarea id="policyJsonInput" rows="6" spellcheck="false" oninput="onPolicyChanged()"></textarea>
+        <textarea id="policyJsonInput" rows="8" spellcheck="false" oninput="onPolicyChanged()"></textarea>
         <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px; font-family: var(--mono);">
           Deterministic Policy Hash (h_p): <span id="policyHashDisplay" style="color: #222; font-weight: bold;">-</span>
         </div>
       </div>
+
+      <!-- AWS IAM-Style Policy Specification Guide -->
+      <details open style="margin-top: 14px;">
+        <summary>AWS IAM Policy Syntax Specification & Guide (Click to collapse)</summary>
+        <div class="details-inner">
+          <p style="margin: 0 0 8px 0; font-size: 0.8rem; line-height: 1.45;">
+            scafonix Vault policies follow an <strong>AWS IAM-style JSON specification</strong>.
+            During signature requests, the automated Inspector evaluates every statement against the proposed transaction parameters.
+          </p>
+
+          <div style="font-weight: 600; margin-bottom: 4px;">1. Evaluation Rules (Allow vs. Deny):</div>
+          <ul style="margin: 0 0 10px 18px; padding: 0; font-size: 0.78rem; line-height: 1.4;">
+            <li><strong>Default Deny:</strong> By default, all transactions are denied. A transaction is only approved if at least one statement with <code>"Effect": "Allow"</code> matches.</li>
+            <li><strong>Explicit Deny Precedence:</strong> If <em>any</em> statement with <code>"Effect": "Deny"</code> matches the transaction, the transaction is <strong>immediately denied</strong>, regardless of any matching <code>Allow</code> statements.</li>
+          </ul>
+
+          <div style="font-weight: 600; margin-bottom: 4px;">2. Statement Syntax Reference:</div>
+          <table class="guide-table">
+            <thead>
+              <tr>
+                <th style="width: 90px;">Field</th>
+                <th style="width: 70px;">Type</th>
+                <th>Permitted Values & Examples</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>Sid</code></td>
+                <td>String</td>
+                <td><code>"AllowEthTransferWithLimit"</code>, <code>"DenyUntrustedChains"</code></td>
+                <td>Optional human-readable statement identifier.</td>
+              </tr>
+              <tr>
+                <td><code>Effect</code></td>
+                <td>String</td>
+                <td><code>"Allow"</code> or <code>"Deny"</code></td>
+                <td>Required. Specifies whether matching actions are permitted or forbidden.</td>
+              </tr>
+              <tr>
+                <td><code>Action</code></td>
+                <td>Array</td>
+                <td>
+                  <code>["web3:TransferETH"]</code><br>
+                  <code>["web3:CallContract"]</code><br>
+                  <code>["*"]</code>
+                </td>
+                <td>
+                  Specifies the Web3 action type:<br>
+                  • <code>web3:TransferETH</code>: Native currency transfer.<br>
+                  • <code>web3:CallContract</code>: Smart contract execution / ERC-20 transfer.<br>
+                  • <code>*</code>: Wildcard matching all Web3 actions.
+                </td>
+              </tr>
+              <tr>
+                <td><code>Resource</code></td>
+                <td>Array</td>
+                <td>
+                  <code>["*"]</code><br>
+                  <code>["0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"]</code><br>
+                  <code>["ethereum:recipient:0x..."]</code><br>
+                  <code>["ethereum:contract:0x..."]</code>
+                </td>
+                <td>
+                  Specifies target address(es):<br>
+                  • <code>*</code>: Any destination address.<br>
+                  • Hex address or prefixed URI for strict whitelisting.
+                </td>
+              </tr>
+              <tr>
+                <td><code>Condition</code></td>
+                <td>Object</td>
+                <td>
+                  <code>"NumericLessThanEquals": { "web3:ValueWei": 100000000000000000 }</code><br>
+                  <code>"NumericEquals": { "web3:ChainId": 1 }</code><br>
+                  <code>"StringEquals": { "web3:Action": "web3:TransferETH" }</code>
+                </td>
+                <td>
+                  Conditional criteria for enforcement:<br>
+                  • <code>NumericLessThanEquals</code> (<code>web3:ValueWei</code>): Caps maximum transfer value (Wei).<br>
+                  • <code>NumericEquals</code> (<code>web3:ChainId</code>): Enforces network chain ID (1 = Ethereum Mainnet, 11155111 = Sepolia, 137 = Polygon, 10 = Optimism, 42161 = Arbitrum, 8453 = Base).<br>
+                  • <code>StringEquals</code> (<code>web3:Action</code>): Exact action match.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="font-weight: 600; margin-top: 10px; margin-bottom: 4px;">3. Practical Use Cases & Examples:</div>
+          <div style="font-size: 0.78rem; line-height: 1.45; color: #444;">
+            • <strong>Budget Spending Cap:</strong> Allow transfers up to 0.1 ETH per tx on Mainnet.<br>
+            • <strong>DEX Router Whitelisting:</strong> Allow contract calls exclusively to Uniswap V3 SwapRouter.<br>
+            • <strong>Dedicated Cold Storage:</strong> Allow transfers only to a single whitelisted cold wallet address.<br>
+            • <strong>Contract Lockdown (Defense-in-Depth):</strong> Explicitly <code>Deny</code> all <code>web3:CallContract</code> transactions to protect against malicious approvals.
+          </div>
+        </div>
+      </details>
     </div>
 
     <!-- Step 2: Emergency Recovery Password -->
@@ -386,15 +560,37 @@
           <td>
             <span class="mono-cell address-highlight" id="resultVaultAddress">0x...</span>
             <button class="btn btn-secondary btn-sm" style="margin-left: 8px;" onclick="copyText('resultVaultAddress', 'Address copied')">Copy</button>
+            <div style="font-size: 0.72rem; color: var(--muted); margin-top: 3px;">
+              Your joint Ethereum address. Derived from aggregated public key point $Q = Q_A + Q_B$.
+            </div>
           </td>
         </tr>
         <tr>
           <th>Client Share (sk_A)</th>
-          <td class="mono-cell" id="resultSkA">0x...</td>
+          <td>
+            <span class="mono-cell" id="resultSkA">0x...</span>
+            <div style="font-size: 0.72rem; color: var(--muted); margin-top: 3px;">
+              Your private key share. Generated in-browser and never transmitted anywhere.
+            </div>
+          </td>
         </tr>
         <tr>
           <th>Inspector Commitment (Q_B)</th>
-          <td class="mono-cell" id="resultQb">0x...</td>
+          <td>
+            <span class="mono-cell" id="resultQb">0x...</span>
+            <div style="font-size: 0.72rem; color: var(--muted); margin-top: 3px;">
+              The Inspector's public commitment curve point. Verifies co-signer key possession.
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <th>Policy Hash (h_p)</th>
+          <td>
+            <span class="mono-cell" id="resultHp">-</span>
+            <div style="font-size: 0.72rem; color: var(--muted); margin-top: 3px;">
+              SHA-256 policy digest cryptographically bound to Share B ($sk_B = sk_{B\_seed} + h_p$).
+            </div>
+          </td>
         </tr>
         <tr>
           <th>Mathematical Verification</th>
@@ -412,6 +608,7 @@
       <div style="margin-top: 8px; display: flex; gap: 8px;">
         <button class="btn btn-secondary btn-sm" onclick="copyText('resultVoucherText', 'Voucher copied')">Copy Voucher</button>
         <button class="btn btn-secondary btn-sm" onclick="downloadBackupJson()">Download Backup JSON</button>
+      </div>
     </div>
   </div>
 
@@ -422,7 +619,7 @@
       
       <div class="notice">
         Connect your scafonix Vault directly to MetaMask via the official Snap plugin.
-        Your Client Secret Share (sk_A) stays isolated inside MetaMask's encrypted storage,
+        Your Client Secret Share (sk_A) stays isolated inside MetaMask's encrypted storage sandbox,
         while all transactions are co-signed by the 2nd Inspector (vault-api.scafonix.com) before broadcast.
       </div>
 
@@ -466,12 +663,17 @@
         <select id="snapPolicySelect" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border); font-size: 0.85rem; font-family: var(--sans);">
           <option value="daily">Daily Spending Limit (0.1 ETH Max per tx)</option>
           <option value="uniswap">Whitelisted DEX Router (Uniswap V3 Only)</option>
+          <option value="whitelist">Whitelisted Cold Wallet Only</option>
+          <option value="deny_contracts">Contract-Call Lockdown (Deny Smart Contracts)</option>
         </select>
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+          Choose the IAM policy to lock into your MetaMask-managed key.
+        </div>
       </div>
 
       <div class="form-row">
         <label for="snapPasswordInput">Emergency Recovery Password:</label>
-        <input type="password" id="snapPasswordInput" placeholder="Password to encrypt Share C voucher">
+        <input type="password" id="snapPasswordInput" placeholder="Password to encrypt Share C voucher (min 8 chars)">
         <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
           Used to encrypt your offline recovery ticket. Never shared with MetaMask or the server.
         </div>
@@ -495,7 +697,7 @@
         <label for="txAmountEthInput">Amount (ETH):</label>
         <input type="text" id="txAmountEthInput" value="0.05">
         <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
-          Try 0.05 ETH (approved under 0.1 limit) vs 0.5 ETH (rejected by policy).
+          Testing hint: Try <strong>0.05 ETH</strong> (approved under the 0.1 ETH limit) vs <strong>0.5 ETH</strong> (rejected by policy).
         </div>
       </div>
 
@@ -513,28 +715,40 @@
       <div class="section-header">Disaster Recovery / Local Emergency Signer</div>
       
       <div class="notice">
-        This tool executes local blinded-nonce signing (Korean Patent Application 10-2026-0134084) entirely inside your browser.
-        No network requests or server approvals are made. You can run this completely offline.
+        This tool executes local blinded-nonce signing (Patent Application KR 10-2026-0134084) entirely inside your browser.<br>
+        No network requests or server approvals are made. You can run this completely offline or using the standalone air-gap tool.
       </div>
 
       <div class="form-row">
         <label for="recInputSkA">1. Client Secret Share (sk_A hex):</label>
         <input type="text" id="recInputSkA" placeholder="32-byte hex scalar (e.g. ab9b07...)">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+          Your private share generated during vault creation.
+        </div>
       </div>
 
       <div class="form-row">
         <label for="recInputVoucher">2. Emergency Recovery Voucher (Share C):</label>
         <textarea id="recInputVoucher" rows="3" placeholder="scafonix-vault-c-..."></textarea>
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+          Encrypted AES-256 voucher containing the inspector's base secret seed.
+        </div>
       </div>
 
       <div class="form-row">
         <label for="recInputPassword">3. Recovery Password:</label>
         <input type="password" id="recInputPassword" placeholder="Password configured during vault generation">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+          The password you entered when creating the vault.
+        </div>
       </div>
 
       <div class="form-row">
         <label for="recInputTxHash">4. Raw Transaction Hash to Sign (32-byte hex):</label>
         <input type="text" id="recInputTxHash" value="0x1111111111111111111111111111111111111111111111111111111111111111">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+          Keccak-256 hash of the unsigned RLP-encoded Ethereum transaction.
+        </div>
       </div>
 
       <div style="margin-top: 16px;">
@@ -622,22 +836,41 @@ const PRESET_POLICIES = {
         NumericEquals: { "web3:ChainId": 1 }
       }
     }]
-  }
-};
-
-window.switchView = function(view) {
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-
-  if (view === 'create') {
-    document.querySelector('.nav-tab:nth-child(1)').classList.add('active');
-    document.getElementById('panelCreate').classList.add('active');
-  } else if (view === 'snap') {
-    document.querySelector('.nav-tab:nth-child(2)').classList.add('active');
-    document.getElementById('panelSnap').classList.add('active');
-  } else {
-    document.querySelector('.nav-tab:nth-child(3)').classList.add('active');
-    document.getElementById('panelRecovery').classList.add('active');
+  },
+  whitelist: {
+    Version: "scafonix-2026-v1",
+    VaultId: "vault_cold_whitelist_01",
+    Statement: [{
+      Sid: "AllowOnlyDesignatedColdWallet",
+      Effect: "Allow",
+      Action: ["web3:TransferETH"],
+      Resource: ["0x70997970C51812dc3A010C7d01b50e0d17dc79C8"],
+      Condition: {
+        NumericEquals: { "web3:ChainId": 1 }
+      }
+    }]
+  },
+  deny_contracts: {
+    Version: "scafonix-2026-v1",
+    VaultId: "vault_no_contract_calls_01",
+    Statement: [
+      {
+        Sid: "AllowNativeTransfersUnder05Eth",
+        Effect: "Allow",
+        Action: ["web3:TransferETH"],
+        Resource: ["*"],
+        Condition: {
+          NumericLessThanEquals: { "web3:ValueWei": 500000000000000000 },
+          NumericEquals: { "web3:ChainId": 1 }
+        }
+      },
+      {
+        Sid: "ExplicitDenyAllContractInteractions",
+        Effect: "Deny",
+        Action: ["web3:CallContract"],
+        Resource: ["*"]
+      }
+    ]
   }
 };
 
@@ -795,11 +1028,8 @@ window.handleSignTxSnap = async function() {
 window.updatePolicyPreset = function() {
   const selected = document.querySelector('input[name="policy_preset"]:checked').value;
   const textarea = document.getElementById('policyJsonInput');
-  if (selected === 'daily') {
-    textarea.value = JSON.stringify(PRESET_POLICIES.daily, null, 2);
-    textarea.readOnly = true;
-  } else if (selected === 'uniswap') {
-    textarea.value = JSON.stringify(PRESET_POLICIES.uniswap, null, 2);
+  if (PRESET_POLICIES[selected]) {
+    textarea.value = JSON.stringify(PRESET_POLICIES[selected], null, 2);
     textarea.readOnly = true;
   } else {
     textarea.readOnly = false;
@@ -886,6 +1116,7 @@ window.handleCreateVault = async function() {
     document.getElementById('resultVaultAddress').innerText = data.vault_address;
     document.getElementById('resultSkA').innerText = "0x" + currentClientKeypair.sk_a_hex;
     document.getElementById('resultQb').innerText = "0x" + data.enclave_qb_hex;
+    document.getElementById('resultHp').innerText = data.policy_hash;
     document.getElementById('resultVoucherText').value = data.voucher_c;
 
     // Prefill recovery tab
