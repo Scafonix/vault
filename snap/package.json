@@ -21,6 +21,7 @@
     "@metamask/snaps-cli": "^6.3.0",
     "@metamask/snaps-sdk": "^6.10.0",
     "@types/node": "^22.0.0",
+    "prettier": "^3.9.10",
     "typescript": "^5.4.5"
   }
 }

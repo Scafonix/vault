@@ -7,7 +7,7 @@
     "url": "https://github.com/Scafonix/vault.git"
   },
   "source": {
-    "shasum": "hYeIId/OyAOD3UYaBOWNJcCnAbfLTvbmfXBRi3TN3IA=",
+    "shasum": "t1TYrPWQf876CR3HuS+n5dEbAsQn+vfMfXaukstauvc=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
@@ -25,6 +25,6 @@
       "dapps": true
     }
   },
-  "platformVersion": "12.1.0",
+  "platformVersion": "6.10.0",
   "manifestVersion": "0.1"
 }
