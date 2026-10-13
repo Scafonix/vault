@@ -1,0 +1,22 @@
+[Unit]
+Description=scafonix Vault 2nd Inspector Service
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/guardian-dev
+ExecStart=/home/ubuntu/guardian-dev/target/release/scafonix-server
+Restart=always
+RestartSec=3
+Environment=PORT=3000
+Environment=RUST_LOG=info
+
+# Security Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

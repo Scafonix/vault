@@ -1,0 +1,22 @@
+[package]
+name = "scafonix-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+scafonix-crypto = { path = "../scafonix-crypto" }
+scafonix-policy = { path = "../scafonix-policy" }
+scafonix-vault = { path = "../scafonix-vault" }
+wasm-bindgen.workspace = true
+getrandom.workspace = true
+k256.workspace = true
+rand_core.workspace = true
+hex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde-wasm-bindgen = "0.6"

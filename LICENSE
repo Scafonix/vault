@@ -1,0 +1,40 @@
+Business Source License 1.1
+
+Parameters:
+
+Licensor:               Scafonix Inc.
+Licensed Work:          scafonix Vault (pEOA Core, Web, and Server)
+Change Date:            2030-01-01
+Change License:         Apache License, Version 2.0
+Additional Use Grant:   You may freely inspect, review, audit, compile, and run this
+                        software for personal, non-commercial evaluation, personal vault
+                        management, offline signing, and self-hosted personal use.
+                        You may NOT host this software as a commercial software-as-a-service
+                        (SaaS), managed MPC signing service, or incorporate it into a
+                        competing commercial product without a separate commercial license agreement.
+
+Notice:
+
+The Business Source License 1.1 (the "License") can be found in the text below.
+You may not use this file except in compliance with the License.
+
+--------------------------------------------------------------------------------
+
+Business Source License 1.1
+
+Subject to the terms and conditions hereof, Licensor hereby grants you a
+worldwide, non-exclusive, no-charge, royalty-free copyright license to
+reproduce, prepare derivative works of, publicly display, publicly perform,
+sublicense, and distribute the Licensed Work, each for the limited purpose of the
+Additional Use Grant described above.
+
+On the Change Date specified above, this License shall automatically convert to
+the Change License specified above, and Licensor hereby grants you all rights
+conferred under such Change License without further action required.
+
+Patent Application Notice:
+This software embodies technologies subject to Korean Patent Application
+No. 10-2026-0134084 ("분산키 및 결합 은닉 난수 기반의 비조립식 암호 서명 시스템 및 그 방법").
+No patent license, express or implied, is granted for unauthorized commercial use.
+
+For commercial licensing: contact@scafonix.com

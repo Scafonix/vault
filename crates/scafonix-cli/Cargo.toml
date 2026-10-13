@@ -1,0 +1,16 @@
+[package]
+name = "scafonix-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+scafonix-vault = { path = "../scafonix-vault" }
+scafonix-crypto = { path = "../scafonix-crypto" }
+scafonix-policy = { path = "../scafonix-policy" }
+k256.workspace = true
+rand_core.workspace = true
+hex.workspace = true
+serde.workspace = true
+serde_json.workspace = true

@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>scafonix vault — Programmable MPC Vault</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --card-bg: #ffffff;
+      --subtle-bg: #f8f9fa;
+      --text: #1a1a1a;
+      --muted: #6c757d;
+      --border: #e1e4e8;
+      --primary: #111111;
+      --primary-hover: #2d3748;
+      --accent-blue: #0969da;
+      --danger-bg: #fff5f5;
+      --danger-border: #fed7d7;
+      --danger-text: #c53030;
+      --success-bg: #f0fff4;
+      --success-border: #c6f6d5;
+      --success-text: #22543d;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: #fafbfc;
+      color: var(--text);
+      line-height: 1.5;
+      margin: 0;
+      padding: 32px 16px;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+    }
+    .brand h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+    .brand p {
+      margin: 4px 0 0 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .status-badge {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      background: var(--subtle-bg);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+
+    /* Preset Selection */
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .preset-card {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      cursor: pointer;
+      background: #ffffff;
+      transition: all 0.15s ease;
+    }
+    .preset-card:hover {
+      border-color: #a0aec0;
+      background: var(--subtle-bg);
+    }
+    .preset-card.active {
+      border-color: var(--primary);
+      background: #f7fafc;
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+    .preset-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .preset-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    /* Form Inputs */
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    input[type="text"], input[type="password"], textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      color: var(--text);
+      background: #ffffff;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+    }
+    .input-hint {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+
+    /* Primary Button */
+    .btn-primary {
+      width: 100%;
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 13px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    .btn-primary:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
+    }
+
+    /* Secondary Button */
+    .btn-secondary {
+      background: #ffffff;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-secondary:hover {
+      background: var(--subtle-bg);
+      border-color: #cbd5e0;
+    }
+
+    /* Result Section */
+    .result-address-box {
+      background: var(--subtle-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .address-text {
+      font-family: var(--font-mono);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent-blue);
+      word-break: break-all;
+    }
+
+    /* Warning Banner */
+    .alert-box {
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+    .alert-danger {
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      color: var(--danger-text);
+    }
+    .alert-success {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+    }
+
+    /* Collapsible Details */
+    details {
+      margin-top: 14px;
+      font-size: 0.82rem;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+    summary {
+      cursor: pointer;
+      color: var(--muted);
+      user-select: none;
+      font-weight: 500;
+    }
+    summary:hover {
+      color: var(--text);
+    }
+    .details-content {
+      padding-top: 12px;
+    }
+
+    .mono-card {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      background: #f8f9fa;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      word-break: break-all;
+      margin-top: 4px;
+      margin-bottom: 10px;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 36px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .footer-link {
+      color: var(--accent-blue);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .footer-link:hover {
+      text-decoration: underline;
+    }
+
+    /* View Switcher */
+    .view-container {
+      display: none;
+    }
+    .view-container.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <h1>scafonix vault</h1>
+      <p>The Programmable MPC Vault (pEOA) • Zero Seed Phrase</p>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <a href="https://github.com/Scafonix/guardian-dev" target="_blank" rel="noopener" style="font-size: 0.75rem; color: var(--muted); text-decoration: none; border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; background: var(--subtle-bg);">
+        GitHub ↗
+      </a>
+      <div id="statusBadge" class="status-badge">
+        ⚡ Loading Engine...
+      </div>
+    </div>
+  </header>
+
+  <!-- VIEW 1: CREATE VAULT (MAIN VIEW) -->
+  <div id="viewCreate" class="view-container active">
+    <div class="card">
+      <h2 class="card-title">1. Select Protection Policy</h2>
+      
+      <div class="preset-grid">
+        <div class="preset-card active" onclick="selectPreset('daily')">
+          <div class="preset-title">🛡️ Daily Limit (0.1 ETH)</div>
+          <div class="preset-desc">Rejects any transaction over 0.1 ETH. Perfect for daily Web3 safety.</div>
+        </div>
+        <div class="preset-card" onclick="selectPreset('uniswap')">
+          <div class="preset-title">🔒 Uniswap V3 Only</div>
+          <div class="preset-desc">Only allows interactions with verified Uniswap router contracts.</div>
+        </div>
+      </div>
+
+      <!-- Advanced Policy Toggle -->
+      <details id="customPolicyDetails" style="border-top: none; padding-top: 0; margin-bottom: 18px;">
+        <summary style="font-size: 0.8rem;">⚙️ Want custom IAM rules? Edit policy JSON</summary>
+        <div class="details-content">
+          <textarea id="policyJsonText" style="height: 120px; font-family: var(--font-mono); font-size: 0.8rem;" spellcheck="false" oninput="onPolicyChanged()"></textarea>
+          <div class="input-hint">Policy Hash ($h_p$): <span id="policyHashDisplay" style="font-family: var(--font-mono); font-weight: bold;">-</span></div>
+        </div>
+      </details>
+
+      <h2 class="card-title" style="margin-top: 24px;">2. Set Recovery Password</h2>
+      <div class="form-group">
+        <input type="password" id="recPasswordInput" placeholder="Enter secure password (min 8 chars)">
+        <div class="input-hint">
+          This password encrypts your emergency backup ticket. It is <strong>never stored on any server</strong>.
+        </div>
+      </div>
+
+      <button id="createVaultBtn" class="btn-primary" onclick="handleCreateVault()">
+        ⚡ Create Protected Vault
+      </button>
+
+      <!-- Advanced Technical Settings -->
+      <details>
+        <summary>Advanced Network Settings (2nd Inspector)</summary>
+        <div class="details-content">
+          <label style="font-size: 0.75rem; color: var(--muted);">Inspector URL:</label>
+          <input type="text" id="inspectorUrlInput" value="http://3.36.145.23" style="font-family: var(--font-mono); font-size: 0.8rem; padding: 6px 10px;">
+          <div style="margin-top: 8px;">
+            <button class="btn-secondary" onclick="downloadAirgapFile()">💾 Download Air-Gap Tool (Offline .html)</button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- RESULT CARD (Shows after creation) -->
+    <div id="resultCard" class="card" style="display: none; border-color: #cbd5e0;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <span style="font-size: 0.85rem; font-weight: 600; color: var(--success-text);">🎉 Vault Created & Ready to Use</span>
+        <span style="font-size: 0.75rem; color: var(--muted);">Standard EOA • 0 Gas Setup</span>
+      </div>
+
+      <div class="result-address-box">
+        <div>
+          <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 4px;">Your Protected Vault Address:</div>
+          <div class="address-text" id="resultVaultAddress">0x...</div>
+        </div>
+        <button class="btn-secondary" onclick="copyText('resultVaultAddress', 'Address copied!')">Copy</button>
+      </div>
+
+      <div class="alert-box alert-danger">
+        <strong>🚨 SAVE YOUR EMERGENCY TICKET NOW:</strong><br>
+        This encrypted ticket is <strong>NEVER saved on our servers</strong>. 
+        If scafonix is ever offline or destroyed, this ticket + your password lets you withdraw 100% of your funds.
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+        <button class="btn-secondary" style="flex: 1;" onclick="downloadBackupJson()">💾 Download Backup File (.json)</button>
+        <button class="btn-secondary" style="flex: 1;" onclick="copyText('resultVoucherText', 'Ticket copied!')">📋 Copy Emergency Ticket</button>
+      </div>
+
+      <textarea id="resultVoucherText" readonly style="height: 60px; font-family: var(--font-mono); font-size: 0.75rem; background: var(--danger-bg); border-color: var(--danger-border);"></textarea>
+
+      <!-- Cryptographic Details (Optional) -->
+      <details>
+        <summary>View Cryptographic Details (WASM Verified)</summary>
+        <div class="details-content">
+          <div style="font-size: 0.75rem; color: var(--muted);">Client Secret Share ($sk_A$):</div>
+          <div class="mono-card" id="detailSkA">0x...</div>
+
+          <div style="font-size: 0.75rem; color: var(--muted);">Inspector Public Commitment ($Q_B$):</div>
+          <div class="mono-card" id="detailQb">0x...</div>
+
+          <div style="font-size: 0.75rem; color: var(--success-text); font-weight: 600;">
+            ✅ Mathematical check: Client verified $Q = Q_A + Q_B$ in browser WebAssembly.
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- VIEW 2: EMERGENCY RECOVERY (CLEAN SECONDARY VIEW) -->
+  <div id="viewRecover" class="view-container">
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 class="card-title" style="margin: 0;">Emergency Recovery Tool</h2>
+        <a class="footer-link" onclick="switchView('create')">← Back to Create Vault</a>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--muted); margin-top: 0; margin-bottom: 18px;">
+        Unilaterally sign transactions offline using your backup ticket (Patent 10-2026-0134084). No server required.
+      </p>
+
+      <div class="form-group">
+        <label>1. Client Secret Share ($sk_A$):</label>
+        <input type="text" id="recInputSkA" placeholder="32-byte hex scalar (ab9b07...)">
+      </div>
+
+      <div class="form-group">
+        <label>2. Emergency Recovery Ticket (Share C):</label>
+        <textarea id="recInputVoucher" style="height: 65px; font-family: var(--font-mono); font-size: 0.8rem;" placeholder="scafonix-vault-c-..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>3. Recovery Password:</label>
+        <input type="password" id="recInputPassword" placeholder="Your recovery password">
+      </div>
+
+      <div class="form-group">
+        <label>4. Transaction Hash to Sign ($e$, 32-byte hex):</label>
+        <input type="text" id="recInputTxHash" value="0x1111111111111111111111111111111111111111111111111111111111111111">
+      </div>
+
+      <button id="execRecoveryBtn" class="btn-primary" onclick="handleEmergencySign()">
+        🔓 Decrypt Ticket & Sign Offline
+      </button>
+
+      <!-- Recovery Output -->
+      <div id="recOutputBox" style="display: none; margin-top: 20px;">
+        <div class="alert-box alert-success">
+          ✅ <strong>Signature Valid:</strong> Successfully signed using patent zero-assembly algorithm!
+        </div>
+
+        <div style="font-size: 0.8rem; color: var(--muted); margin-bottom: 4px;">Recovered Address (ecrecover):</div>
+        <div class="result-address-box">
+          <div class="address-text" id="recRecoveredAddress">0x...</div>
+        </div>
+
+        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 10px; margin-bottom: 4px;">Raw Signature (r || s || v):</div>
+        <div class="mono-card" id="recRawSig">0x...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Navigation -->
+  <footer>
+    <div style="margin-bottom: 8px;">
+      <span id="footerNavPrompt">Need to recover funds using a backup ticket? </span>
+      <a id="footerNavLink" class="footer-link" onclick="switchView('recover')">Open Emergency Recovery Tool →</a>
+    </div>
+    <div style="font-size: 0.75rem; color: #8c959f;">
+      scafonix vault • Patent Application 10-2026-0134084 • Non-custodial MPC
+    </div>
+  </footer>
+</div>
+
+<script type="module">
+import init, {
+  generate_client_keypair,
+  compute_policy_hash_wasm,
+  compute_vault_address_wasm,
+  decrypt_recovery_voucher_wasm,
+  patent_emergency_sign_wasm
+} from './pkg/scafonix_wasm.js';
+
+let wasmLoaded = false;
+let currentClientKeypair = null;
+let currentVaultData = null;
+
+const PRESET_POLICIES = {
+  daily: {
+    Version: "scafonix-2026-v1",
+    VaultId: "vault_daily_eth_01",
+    Statement: [{
+      Sid: "AllowEthTransferWithLimit",
+      Effect: "Allow",
+      Action: ["web3:TransferETH"],
+      Resource: ["*"],
+      Condition: {
+        NumericLessThanEquals: { "web3:ValueWei": 100000000000000000 },
+        NumericEquals: { "web3:ChainId": 1 }
+      }
+    }]
+  },
+  uniswap: {
+    Version: "scafonix-2026-v1",
+    VaultId: "vault_uniswap_dex_01",
+    Statement: [{
+      Sid: "AllowUniswapV3Only",
+      Effect: "Allow",
+      Action: ["web3:CallContract"],
+      Resource: ["ethereum:contract:0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"],
+      Condition: {
+        NumericEquals: { "web3:ChainId": 1 }
+      }
+    }]
+  }
+};
+
+let currentPreset = 'daily';
+
+window.selectPreset = function(preset) {
+  currentPreset = preset;
+  document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+  if (preset === 'daily') {
+    document.querySelector('.preset-card:nth-child(1)').classList.add('active');
+  } else if (preset === 'uniswap') {
+    document.querySelector('.preset-card:nth-child(2)').classList.add('active');
+  }
+  document.getElementById('policyJsonText').value = JSON.stringify(PRESET_POLICIES[preset], null, 2);
+  window.onPolicyChanged();
+};
+
+window.onPolicyChanged = function() {
+  if (!wasmLoaded) return;
+  const jsonText = document.getElementById('policyJsonText').value;
+  try {
+    const hash = compute_policy_hash_wasm(jsonText);
+    document.getElementById('policyHashDisplay').innerText = hash.substring(0, 18) + '...';
+  } catch (e) {
+    document.getElementById('policyHashDisplay').innerText = '(Invalid policy format)';
+  }
+};
+
+window.switchView = function(view) {
+  document.getElementById('viewCreate').classList.remove('active');
+  document.getElementById('viewRecover').classList.remove('active');
+
+  const footerPrompt = document.getElementById('footerNavPrompt');
+  const footerLink = document.getElementById('footerNavLink');
+
+  if (view === 'create') {
+    document.getElementById('viewCreate').classList.add('active');
+    footerPrompt.innerText = 'Need to recover funds using a backup ticket? ';
+    footerLink.innerText = 'Open Emergency Recovery Tool →';
+    footerLink.onclick = () => switchView('recover');
+  } else {
+    document.getElementById('viewRecover').classList.add('active');
+    footerPrompt.innerText = 'Ready to create a new protected vault? ';
+    footerLink.innerText = 'Back to Vault Generator →';
+    footerLink.onclick = () => switchView('create');
+  }
+};
+
+window.handleCreateVault = async function() {
+  if (!wasmLoaded) {
+    alert("Cryptographic engine is still initializing. Please wait a second.");
+    return;
+  }
+
+  const pwd = document.getElementById('recPasswordInput').value;
+  if (!pwd || pwd.length < 8) {
+    alert("Please enter a recovery password with at least 8 characters.");
+    return;
+  }
+
+  const serverUrl = document.getElementById('inspectorUrlInput').value.replace(/\/$/, "");
+  const policyText = document.getElementById('policyJsonText').value;
+
+  let policy;
+  try {
+    policy = JSON.parse(policyText);
+  } catch (e) {
+    alert("Invalid policy JSON format.");
+    return;
+  }
+
+  const btn = document.getElementById('createVaultBtn');
+  btn.disabled = true;
+  btn.innerText = "⏳ Generating Keys & Signing Policy...";
+
+  try {
+    // 1. Generate client keypair in browser WASM
+    currentClientKeypair = generate_client_keypair();
+
+    // 2. Perform 2-party DKG with Inspector
+    const res = await fetch(`${serverUrl}/api/v1/dkg`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        policy: policy,
+        client_qa_hex: currentClientKeypair.q_a_hex,
+        recovery_password: pwd
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.reason || err.error || "Inspector rejected DKG");
+    }
+
+    const data = await res.json();
+
+    // 3. Verify address independently in WASM
+    const clientComputedAddress = compute_vault_address_wasm(currentClientKeypair.q_a_hex, data.enclave_qb_hex);
+    if (clientComputedAddress.toLowerCase() !== data.vault_address.toLowerCase()) {
+      throw new Error("Address verification failed: Server returned mismatched address.");
+    }
+
+    currentVaultData = {
+      address: data.vault_address,
+      sk_a: currentClientKeypair.sk_a_hex,
+      q_a: currentClientKeypair.q_a_hex,
+      q_b: data.enclave_qb_hex,
+      voucher_c: data.voucher_c,
+      policy_hash: data.policy_hash
+    };
+
+    // 4. Update UI
+    document.getElementById('resultVaultAddress').innerText = data.vault_address;
+    document.getElementById('resultVoucherText').value = data.voucher_c;
+    document.getElementById('detailSkA').innerText = "0x" + currentClientKeypair.sk_a_hex;
+    document.getElementById('detailQb').innerText = "0x" + data.enclave_qb_hex;
+
+    // Prefill recovery tab
+    document.getElementById('recInputSkA').value = currentClientKeypair.sk_a_hex;
+    document.getElementById('recInputVoucher').value = data.voucher_c;
+
+    const resultCard = document.getElementById('resultCard');
+    resultCard.style.display = 'block';
+    resultCard.scrollIntoView({ behavior: 'smooth' });
+  } catch (e) {
+    alert("Vault creation failed: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "⚡ Create Protected Vault";
+  }
+};
+
+window.handleEmergencySign = async function() {
+  if (!wasmLoaded) return;
+
+  let skA = document.getElementById('recInputSkA').value.trim();
+  const voucherC = document.getElementById('recInputVoucher').value.trim();
+  const pwd = document.getElementById('recInputPassword').value;
+  let txHash = document.getElementById('recInputTxHash').value.trim();
+
+  if (skA.startsWith('0x')) skA = skA.substring(2);
+  if (txHash.startsWith('0x')) txHash = txHash.substring(2);
+
+  if (!skA || skA.length !== 64) {
+    alert("Please provide a valid 32-byte hex for Share A.");
+    return;
+  }
+  if (!voucherC || !voucherC.startsWith('scafonix-vault-c-')) {
+    alert("Please enter a valid Share C ticket.");
+    return;
+  }
+  if (!pwd) {
+    alert("Please enter your recovery password.");
+    return;
+  }
+  if (!txHash || txHash.length !== 64) {
+    alert("Please enter a valid 32-byte transaction hash.");
+    return;
+  }
+
+  const btn = document.getElementById('execRecoveryBtn');
+  btn.disabled = true;
+  btn.innerText = "⏳ Decrypting & Signing...";
+
+  try {
+    const skB = decrypt_recovery_voucher_wasm(voucherC, pwd);
+    const sig = patent_emergency_sign_wasm(skA, skB, txHash);
+
+    document.getElementById('recRecoveredAddress').innerText = sig.recovered_address;
+    document.getElementById('recRawSig').innerText = `${sig.r}${sig.s.substring(2)}${sig.v.toString(16).padStart(2, '0')}`;
+    document.getElementById('recOutputBox').style.display = 'block';
+    document.getElementById('recOutputBox').scrollIntoView({ behavior: 'smooth' });
+  } catch (e) {
+    alert("Emergency Sign Failed: " + e);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "🔓 Decrypt Ticket & Sign Offline";
+  }
+};
+
+window.copyText = function(elementId, msg) {
+  const el = document.getElementById(elementId);
+  const val = el.value || el.innerText;
+  navigator.clipboard.writeText(val).then(() => {
+    alert(msg || "Copied to clipboard!");
+  });
+};
+
+window.downloadBackupJson = function() {
+  if (!currentVaultData) return;
+  const backup = {
+    title: "scafonix-vault-backup",
+    vault_address: currentVaultData.address,
+    client_share_a: currentVaultData.sk_a,
+    emergency_ticket_c: currentVaultData.voucher_c,
+    notice: "Keep this file secure. Combined with your password, this allows 100% unilateral recovery of your funds."
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `scafonix-vault-${currentVaultData.address.substring(0, 8)}.json`;
+  a.click();
+};
+
+window.downloadAirgapFile = function() {
+  const a = document.createElement('a');
+  a.href = './scafonix-vault-airgap.html';
+  a.download = 'scafonix-vault-airgap.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
+// Initialize
+async function start() {
+  try {
+    // Set default API URL based on protocol/domain
+    const isHttpsOrDomain = window.location.protocol === 'https:' || window.location.hostname.includes('scafonix.com');
+    const defaultApi = isHttpsOrDomain ? 'https://vault-api.scafonix.com' : 'http://3.36.145.23';
+    const input = document.getElementById('inspectorUrlInput');
+    if (input && !input.value) {
+      input.value = defaultApi;
+    }
+
+    await init();
+    wasmLoaded = true;
+    document.getElementById('statusBadge').innerHTML = '🟢 Engine Ready';
+    window.selectPreset('daily');
+  } catch (e) {
+    console.error(e);
+    document.getElementById('statusBadge').innerHTML = '❌ Engine Error';
+  }
+}
+
+start();
+</script>
+</body>
+</html>

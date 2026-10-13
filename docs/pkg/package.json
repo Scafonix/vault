@@ -1,0 +1,19 @@
+{
+  "name": "scafonix-wasm",
+  "type": "module",
+  "collaborators": [
+    "scafonix <dev@scafonix.com>"
+  ],
+  "version": "0.1.0",
+  "license": "BSL-1.1",
+  "files": [
+    "scafonix_wasm_bg.wasm",
+    "scafonix_wasm.js",
+    "scafonix_wasm.d.ts"
+  ],
+  "main": "scafonix_wasm.js",
+  "types": "scafonix_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
