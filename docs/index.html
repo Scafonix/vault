@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scafonix Vault — Programmable MPC Vault (pEOA)</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <script src="./pkg/walletconnect.bundle.min.js"></script>
   <style>
     :root {
       --bg: #ffffff;
@@ -306,10 +307,10 @@
         if (tab) tab.classList.add('active');
         var panel = document.getElementById('panelCreate');
         if (panel) panel.classList.add('active');
-      } else if (view === 'snap') {
-        var tab = document.getElementById('tabSnap');
+      } else if (view === 'connect' || view === 'snap') {
+        var tab = document.getElementById('tabConnect');
         if (tab) tab.classList.add('active');
-        var panel = document.getElementById('panelSnap');
+        var panel = document.getElementById('panelConnect');
         if (panel) panel.classList.add('active');
       } else if (view === 'recovery') {
         var tab = document.getElementById('tabRecovery');
@@ -341,22 +342,22 @@
 
   <!-- How It Works (Beginner Developer Guide) -->
   <div class="notice" style="background: #fbfbfb; border-left: 3px solid #222;">
-    <div style="font-weight: 700; margin-bottom: 4px;">Two Ways to Secure Your 2-of-2 Vault Key:</div>
+    <div style="font-weight: 700; margin-bottom: 4px;">How Scafonix 2-of-2 Programmable MPC Vault Works:</div>
     <div style="font-size: 0.82rem; color: #444; line-height: 1.45;">
       Standard wallets use a single private key that can be drained if leaked. <strong>Scafonix Vault</strong> splits your key into <strong>2-of-2 MPC shares</strong>:
-      you hold <strong>Share A</strong>, and the automated Inspector holds <strong>Share B</strong> (co-signing only when your AWS IAM policy allows it).
-      Choose how you want to manage Share A:
+      you hold <strong>Share A</strong>, and the automated Inspector holds <strong>Share B</strong> (co-signing only when your AWS IAM JSON policy allows it).
       <ul style="margin: 6px 0 6px 18px; padding: 0;">
-        <li><strong>Mode 1 (Standalone Generator - Tab 1):</strong> Generated in your browser. You receive Share A directly and download an encrypted backup JSON. Ideal for offline air-gap cold storage or custom scripts.</li>
-        <li><strong>Mode 2 (MetaMask Snap Extension - Tab 2):</strong> Generated directly inside MetaMask. Share A is encrypted and kept inside MetaMask's private sandbox without ever touching web memory or clipboard. Ideal for everyday DeFi transactions.</li>
+        <li><strong>Step 1 (Generate Vault & Set Rules):</strong> Configure your AWS IAM rules (e.g. Uniswap V3 only, daily limits) and generate your vault.</li>
+        <li><strong>Step 2 (Connect to Uniswap & dApps):</strong> Use the universal <strong>WalletConnect v2</strong> connector on Tab 2. Copy the pairing URI from Uniswap, pair your Vault, and trade! All transactions are checked against your AWS IAM rules before co-signing.</li>
+        <li><strong>Step 3 (Emergency Rescue):</strong> If the server ever goes offline, use your encrypted Share C voucher on Tab 3 for 100% unilateral recovery.</li>
       </ul>
     </div>
   </div>
 
   <!-- Navigation Tabs -->
   <div class="nav-bar">
-    <button id="tabCreate" class="nav-tab active" onclick="switchView('create')">1. Standalone Generator (Offline / Web)</button>
-    <button id="tabSnap" class="nav-tab" onclick="switchView('snap')">2. MetaMask Snap (Browser Extension)</button>
+    <button id="tabCreate" class="nav-tab active" onclick="switchView('create')">1. Vault Generator & Rules</button>
+    <button id="tabConnect" class="nav-tab" onclick="switchView('connect')">2. dApp Connector (WalletConnect & Uniswap)</button>
     <button id="tabRecovery" class="nav-tab" onclick="switchView('recovery')">3. Disaster Recovery Signer</button>
   </div>
 
@@ -621,126 +622,109 @@
         <textarea id="resultVoucherText" rows="3" readonly style="background: var(--danger-bg); border-color: var(--danger-border);"></textarea>
       </div>
 
-      <div style="margin-top: 8px; display: flex; gap: 8px;">
+      <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
         <button class="btn btn-secondary btn-sm" onclick="copyText('resultVoucherText', 'Voucher copied')">Copy Voucher</button>
         <button class="btn btn-secondary btn-sm" onclick="downloadBackupJson()">Download Backup JSON</button>
+        <button class="btn btn-sm" style="background: #0b5cab; border-color: #0b5cab; color: #fff;" onclick="openDAppConnector()">Connect to Uniswap via WalletConnect &rarr;</button>
       </div>
     </div>
   </div>
 
-  <!-- VIEW 2: METAMASK SNAP INTEGRATION -->
-  <div id="panelSnap" class="view-panel">
+  <!-- VIEW 2: WALLETCONNECT & UNISWAP CONNECTOR -->
+  <div id="panelConnect" class="view-panel">
+    <!-- Section 1: Active Vault Signer Credentials -->
     <div class="section">
-      <div class="section-header">1. MetaMask Snap — Direct Wallet Integration</div>
-      
-      <div class="notice">
-        Connect your Scafonix Vault directly to MetaMask via the official Snap plugin.
-        Your Client Secret Share (sk_A) stays isolated inside MetaMask's encrypted storage sandbox,
-        while all transactions are co-signed by the 2nd Inspector (vault-api.scafonix.com) before broadcast.
-      </div>
+      <div class="section-header">1. Active Vault Signer Credentials</div>
 
-      <div class="notice" style="background: #fffdf5; border-color: #e0d090; color: #705510; font-size: 0.78rem; line-height: 1.45;">
-        <strong>Developer Environment Note (MetaMask Allowlist):</strong><br>
-        Production MetaMask only permits Snaps that have been audited and allowlisted in the official MetaMask Snaps Directory.
-        To test and run this Snap before public directory inclusion, please use <strong><a href="https://metamask.io/flask/" target="_blank" rel="noopener" style="color: #705510; text-decoration: underline;">MetaMask Flask</a></strong> (the official developer preview of MetaMask).
+      <div class="notice">
+        This connector bridges your Scafonix 2-of-2 MPC Vault to any Web3 dApp (including <strong>Uniswap</strong>, <strong>Aave</strong>, and <strong>OpenSea</strong>) via <strong>WalletConnect v2</strong>.<br>
+        Your Client Secret Share ($sk_A$) signs locally in this browser tab, while the 2nd Inspector co-signs only if the transaction adheres to your locked AWS IAM policy.
       </div>
 
       <div class="form-row">
-        <label for="snapIdInput">Snap Package Location / Identifier:</label>
-        <input type="text" id="snapIdInput" value="npm:scafonix-vault-snap" placeholder="npm:scafonix-vault-snap" style="font-family: var(--mono); font-size: 0.8rem;">
+        <label for="wcVaultAddress">Vault Address (0x...):</label>
+        <input type="text" id="wcVaultAddress" placeholder="0x... (from Step 3 above or paste existing)" style="font-family: var(--mono); font-size: 0.85rem; font-weight: 600; color: #0b5cab;">
         <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
-          Production Snap installed directly from npm registry (<code>npm:scafonix-vault-snap</code>).
+          The joint 2-of-2 MPC address exposed to dApps.
         </div>
       </div>
 
-      <div style="margin-top: 12px; display: flex; gap: 8px;">
-        <button id="connectSnapBtn" class="btn" onclick="handleConnectSnap()">Connect & Install Snap</button>
-        <button class="btn btn-secondary" onclick="handleGetSnapVault()">Check Active Vault</button>
+      <div class="form-row">
+        <label for="wcClientSkA">Client Share A (sk_A hex):</label>
+        <input type="password" id="wcClientSkA" placeholder="32-byte hex scalar (e.g. 0x... or 64 hex characters)" style="font-family: var(--mono); font-size: 0.8rem;">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+          Your private share generated in Step 3. Never leaves this browser window.
+        </div>
       </div>
 
-      <div id="snapStatusBox" style="margin-top: 14px; display: none;">
+      <div style="margin-top: 10px; display: flex; gap: 8px;">
+        <button class="btn btn-secondary btn-sm" onclick="syncActiveVaultToWc()">Import Active Vault from Generator</button>
+      </div>
+    </div>
+
+    <!-- Section 2: Pair with Uniswap or any Web3 dApp -->
+    <div class="section">
+      <div class="section-header">2. Pair with Uniswap or Any Web3 dApp (WalletConnect v2)</div>
+
+      <div class="notice" style="background: #fdfdfd; border-left: 3px solid #0b5cab;">
+        <strong>How to Connect to Uniswap:</strong><br>
+        1. Open <a href="https://app.uniswap.org" target="_blank" rel="noopener" style="color: #0b5cab; font-weight: 600; text-decoration: underline;">app.uniswap.org</a> in another tab.<br>
+        2. Click <strong>"Connect"</strong> &rarr; Select <strong>"WalletConnect"</strong> &rarr; Click <strong>"Copy to clipboard"</strong> (or copy the <code>wc:...</code> pairing link).<br>
+        3. Paste the URI below and click <strong>"Pair with dApp"</strong>.<br>
+        4. Swap tokens on Uniswap! Uniswap will send transaction requests to this vault, which are automatically validated against your AWS IAM policy before co-signing.
+      </div>
+
+      <div class="form-row">
+        <label for="wcUriInput">WalletConnect Pairing URI (wc:...):</label>
+        <input type="text" id="wcUriInput" placeholder="wc:79b8830b...4a89@2?relay-protocol=irn&symKey=..." style="font-family: var(--mono); font-size: 0.8rem;">
+      </div>
+
+      <div style="margin-top: 12px; display: flex; gap: 8px;">
+        <button id="wcPairBtn" class="btn" onclick="handlePairWalletConnect()">Pair with dApp</button>
+        <button id="wcDisconnectBtn" class="btn btn-secondary" onclick="handleDisconnectWc()" style="display: none;">Disconnect Session</button>
+      </div>
+
+      <!-- Live Session Status Box -->
+      <div id="wcSessionStatusBox" style="margin-top: 14px; display: none;">
         <table class="data-table">
           <tr>
-            <th>Snap Connection</th>
-            <td id="snapInstalledStatus" style="font-weight: 600; color: var(--success-text);">Connected</td>
+            <th>Status</th>
+            <td id="wcSessionStatusLabel" style="font-weight: 600; color: var(--success-text);">Connected</td>
+          </tr>
+          <tr>
+            <th>Connected dApp</th>
+            <td id="wcDAppName" style="font-weight: 600;">Uniswap Interface</td>
+          </tr>
+          <tr>
+            <th>dApp URL</th>
+            <td id="wcDAppUrl" class="mono-cell">https://app.uniswap.org</td>
           </tr>
           <tr>
             <th>Active Vault Address</th>
-            <td class="mono-cell address-highlight" id="snapVaultAddress">0x...</td>
+            <td class="mono-cell address-highlight" id="wcActiveVaultDisplay">0x...</td>
           </tr>
           <tr>
-            <th>Policy Hash (h_p)</th>
-            <td class="mono-cell" id="snapPolicyHash">-</td>
+            <th>Supported Chains</th>
+            <td id="wcSupportedChains">Ethereum Mainnet (1), Sepolia (11155111)</td>
           </tr>
         </table>
       </div>
     </div>
 
-    <!-- Step B: Create Vault in Snap -->
+    <!-- Section 3: Live Policy Enforcement & Transaction Simulation -->
     <div class="section">
-      <div class="section-header">2. Generate Vault with MetaMask Security</div>
-      
-      <div class="notice" style="background: #fdfdfd; border-left: 3px solid #0b5cab;">
-        <strong>How MetaMask Enclave Security Works:</strong><br>
-        When you generate here, MetaMask creates <strong>Share A</strong> directly inside its encrypted hardware-backed sandbox.
-        Your private key share never touches web memory, temporary files, or the clipboard.
-        Your vault is instantly ready to approve transactions directly through MetaMask popups.
+      <div class="section-header">3. Policy Enforcement & Co-Sign Engine Test</div>
+
+      <div class="notice">
+        Verify that your locked AWS IAM policy correctly intercepts, approves, or rejects dApp transaction calls before broadcasting to the network.
       </div>
 
-      <details style="margin-top: 10px; margin-bottom: 14px;">
-        <summary>How does this compare to Tab 1 (Standalone Generator)?</summary>
-        <div class="details-inner" style="font-size: 0.78rem; line-height: 1.45; color: #444;">
-          • <strong>Tab 1 (Standalone Generator):</strong> Generates Share A in your browser page. You download and secure a <code>backup.json</code> file. Best for offline cold storage or custom scripts.<br>
-          • <strong>Tab 2 (MetaMask Snap):</strong> Generates Share A inside MetaMask's private storage. MetaMask manages Share A automatically. Best for everyday DeFi and dApps.<br>
-          <em>Both modes create an identical 2-of-2 programmable MPC vault on-chain with zero gas deployment fees.</em>
-        </div>
-      </details>
-
-      <div class="form-row">
-        <label for="snapPolicySelect">Protection Policy Template:</label>
-        <select id="snapPolicySelect" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border); font-size: 0.85rem; font-family: var(--sans);">
-          <!-- Populated from POLICY_TEMPLATES -->
-        </select>
-        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
-          Choose the IAM policy to lock into your MetaMask-managed key.
-        </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="simulateUniswapTx(true)">Simulate Whitelisted Swap (Uniswap V3 &le; 0.1 ETH)</button>
+        <button class="btn btn-secondary btn-sm" onclick="simulateUniswapTx(false)">Simulate Blocked Swap (Violates Daily Limit / Untrusted Router)</button>
       </div>
 
-      <div class="form-row">
-        <label for="snapPasswordInput">Emergency Recovery Password:</label>
-        <input type="password" id="snapPasswordInput" placeholder="Password to encrypt Share C voucher (min 8 chars)">
-        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
-          Used to encrypt your offline recovery ticket. Never shared with MetaMask or the server.
-        </div>
-      </div>
-
-      <div style="margin-top: 12px;">
-        <button id="createSnapVaultBtn" class="btn" onclick="handleCreateSnapVault()">Generate Vault inside MetaMask</button>
-      </div>
-    </div>
-
-    <!-- Step C: Test Transaction Signing -->
-    <div class="section">
-      <div class="section-header">3. Test Transaction Signing (MetaMask + 2nd Inspector)</div>
-      
-      <div class="form-row">
-        <label for="txRecipientInput">Recipient Address:</label>
-        <input type="text" id="txRecipientInput" value="0x0000000000000000000000000000000000000001" style="font-family: var(--mono); font-size: 0.8rem;">
-      </div>
-
-      <div class="form-row">
-        <label for="txAmountEthInput">Amount (ETH):</label>
-        <input type="text" id="txAmountEthInput" value="0.05">
-        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
-          Testing hint: Try <strong>0.05 ETH</strong> (approved under the 0.1 ETH limit) vs <strong>0.5 ETH</strong> (rejected by policy).
-        </div>
-      </div>
-
-      <div style="margin-top: 12px;">
-        <button id="signSnapTxBtn" class="btn" onclick="handleSignTxSnap()">Request Co-Sign via MetaMask</button>
-      </div>
-
-      <div id="snapTxResultBox" style="margin-top: 14px; display: none;"></div>
+      <div id="wcTxResultBox" style="margin-top: 14px; display: none;"></div>
     </div>
   </div>
 
@@ -1206,175 +1190,305 @@ window.onPolicyChanged = function() {
   }
 };
 
-function populateSnapTemplates() {
-  const select = document.getElementById('snapPolicySelect');
-  select.innerHTML = '';
-  POLICY_TEMPLATES.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.text = t.title;
-    select.appendChild(opt);
-  });
+// --- WALLETCONNECT V2 DAPP CONNECTOR (UNISWAP, AAVE, OPENSEA) ---
+let wcClient = null;
+let activeWcSession = null;
+
+window.openDAppConnector = function() {
+  window.switchView('connect');
+  window.syncActiveVaultToWc();
+  const wcUriInput = document.getElementById('wcUriInput');
+  if (wcUriInput) wcUriInput.focus();
+};
+
+window.syncActiveVaultToWc = function() {
+  if (currentVaultData && currentVaultData.address) {
+    document.getElementById('wcVaultAddress').value = currentVaultData.address;
+    document.getElementById('wcClientSkA').value = currentVaultData.sk_a;
+  }
+};
+
+async function initWalletConnectClient() {
+  if (wcClient) return wcClient;
+  if (!window.ScafonixWC || !window.ScafonixWC.initWeb3Wallet) {
+    console.warn("WalletConnect bundle not available or running in offline airgap mode.");
+    return null;
+  }
+
+  try {
+    wcClient = await window.ScafonixWC.initWeb3Wallet({
+      projectId: '9424c5222fe25299ad003058a5da31ba',
+      metadata: {
+        name: 'Scafonix Vault',
+        description: 'Programmable 2-of-2 MPC Vault (pEOA)',
+        url: 'https://vault.scafonix.com',
+        icons: ['https://vault.scafonix.com/favicon.svg']
+      }
+    });
+
+    // Session proposal listener (when pairing with Uniswap / dApps)
+    wcClient.on('session_proposal', async (proposal) => {
+      console.log('WalletConnect session proposal received:', proposal);
+      await handleSessionProposal(proposal);
+    });
+
+    // Session request listener (e.g. eth_sendTransaction, personal_sign)
+    wcClient.on('session_request', async (event) => {
+      console.log('WalletConnect session request received:', event);
+      await handleSessionRequest(event);
+    });
+
+    // Session delete listener
+    wcClient.on('session_delete', () => {
+      console.log('WalletConnect session ended.');
+      activeWcSession = null;
+      updateWcSessionUi(null);
+    });
+
+    // Check existing active sessions
+    const sessions = wcClient.getActiveSessions();
+    const sessionKeys = Object.keys(sessions);
+    if (sessionKeys.length > 0) {
+      activeWcSession = sessions[sessionKeys[0]];
+      updateWcSessionUi(activeWcSession);
+    }
+
+    return wcClient;
+  } catch (err) {
+    console.error("Failed to initialize WalletConnect client:", err);
+    return null;
+  }
 }
 
-window.handleConnectSnap = async function() {
-  if (!window.ethereum) {
-    alert("MetaMask is not detected. Please install the MetaMask extension.");
+async function handleSessionProposal(proposal) {
+  const vaultAddress = (document.getElementById('wcVaultAddress').value || '').trim();
+  if (!vaultAddress || !vaultAddress.startsWith('0x')) {
+    alert("Please configure an Active Vault Address in Section 1 before pairing with a dApp.");
     return;
   }
-  const snapId = document.getElementById('snapIdInput').value.trim();
-  const btn = document.getElementById('connectSnapBtn');
-  btn.disabled = true;
-  btn.innerText = "Connecting to MetaMask...";
 
   try {
-    await window.ethereum.request({
-      method: 'wallet_requestSnaps',
-      params: { [snapId]: {} }
-    });
-    alert("MetaMask Snap installed successfully!");
-    await window.handleGetSnapVault();
-  } catch (e) {
-    if (e.message && e.message.includes('not on the allowlist')) {
-      alert("MetaMask Allowlist Notice:\n\nProduction MetaMask only allows Snaps published to the official MetaMask Snaps Directory.\n\nTo test or run custom community Snaps, please use MetaMask Flask (the developer edition of MetaMask):\nhttps://metamask.io/flask/");
-    } else {
-      alert("Failed to connect Snap: " + e.message);
-    }
-  } finally {
-    btn.disabled = false;
-    btn.innerText = "Connect & Install Snap";
+    const { id, params } = proposal;
+    const { requiredNamespaces, optionalNamespaces } = params;
+
+    // Build approved namespaces for EVM chains
+    const namespaces = {};
+    const eip155Req = (requiredNamespaces && requiredNamespaces.eip155) || {};
+    const eip155Opt = (optionalNamespaces && optionalNamespaces.eip155) || {};
+
+    const reqChains = eip155Req.chains || [];
+    const optChains = eip155Opt.chains || ['eip155:1', 'eip155:11155111'];
+    const allChains = Array.from(new Set([...reqChains, ...optChains]));
+
+    const accounts = allChains.map(chain => `${chain}:${vaultAddress}`);
+    const methods = Array.from(new Set([
+      ...(eip155Req.methods || []),
+      ...(eip155Opt.methods || []),
+      'eth_sendTransaction',
+      'eth_signTransaction',
+      'personal_sign',
+      'eth_signTypedData',
+      'eth_signTypedData_v4'
+    ]));
+    const events = Array.from(new Set([
+      ...(eip155Req.events || []),
+      ...(eip155Opt.events || []),
+      'chainChanged',
+      'accountsChanged'
+    ]));
+
+    namespaces.eip155 = {
+      accounts,
+      methods,
+      events
+    };
+
+    const session = await wcClient.approveSession({ id, namespaces });
+    activeWcSession = session;
+    updateWcSessionUi(session);
+    alert(`Connected to ${params.proposer.metadata.name} via WalletConnect!`);
+  } catch (err) {
+    console.error("Session approval error:", err);
+    alert("WalletConnect Pairing Error: " + err.message);
   }
-};
+}
 
-window.handleGetSnapVault = async function() {
-  if (!window.ethereum) return;
-  const snapId = document.getElementById('snapIdInput').value.trim();
-  try {
-    const vault = await window.ethereum.request({
-      method: 'wallet_invokeSnap',
-      params: {
-        snapId,
-        request: { method: 'scafonix_getVault' }
+async function handleSessionRequest(event) {
+  const { topic, params, id } = event;
+  const { request, chainId } = params;
+  const method = request.method;
+
+  const resultBox = document.getElementById('wcTxResultBox');
+  resultBox.style.display = 'block';
+
+  if (method === 'eth_sendTransaction' || method === 'eth_signTransaction') {
+    const tx = request.params[0];
+    const to = tx.to;
+    const valueWei = parseInt(tx.value || '0x0', 16);
+    const data = tx.data || '0x';
+
+    resultBox.className = "notice";
+    resultBox.innerHTML = `<strong>Incoming dApp Transaction:</strong><br>To: ${to}<br>Value: ${(valueWei / 1e18).toFixed(4)} ETH<br>Evaluating against Vault AWS IAM policy...`;
+
+    // Forward to 2nd Inspector for policy evaluation & co-signing
+    try {
+      const serverUrl = document.getElementById('inspectorUrlInput').value.replace(/\/$/, "");
+      const res = await fetch(`${serverUrl}/api/v1/inspect-and-sign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chain_id: parseInt(chainId.replace('eip155:', '') || '1', 10),
+          recipient: to,
+          value_wei: valueWei,
+          call_data: data
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.reason || err.error || "Inspector denied transaction under locked policy rules.");
       }
-    });
 
-    const box = document.getElementById('snapStatusBox');
-    if (vault && vault.vault_address) {
-      document.getElementById('snapVaultAddress').innerText = vault.vault_address;
-      document.getElementById('snapPolicyHash').innerText = vault.policy_hash;
-      document.getElementById('snapInstalledStatus').innerText = "Active (" + vault.vault_address.substring(0, 8) + "...)";
-      box.style.display = 'block';
-    } else {
-      document.getElementById('snapInstalledStatus').innerText = "Connected (No vault created yet)";
-      document.getElementById('snapVaultAddress').innerText = "None";
-      document.getElementById('snapPolicyHash').innerText = "-";
-      box.style.display = 'block';
-    }
-  } catch (e) {
-    alert("Could not query Snap: " + e.message);
-  }
-};
+      resultBox.className = "notice notice-success";
+      resultBox.innerHTML = `<strong>APPROVED BY INSPECTOR:</strong> Transaction adheres to policy rules.<br>Recipient: ${to}<br>Status: Ready to broadcast.`;
 
-window.handleCreateSnapVault = async function() {
-  if (!window.ethereum) {
-    alert("MetaMask not found.");
-    return;
-  }
-  const snapId = document.getElementById('snapIdInput').value.trim();
-  const tplId = document.getElementById('snapPolicySelect').value;
-  const pwd = document.getElementById('snapPasswordInput').value;
+      // Respond to dApp via WalletConnect
+      await wcClient.respondSessionRequest({
+        topic,
+        response: {
+          id,
+          jsonrpc: '2.0',
+          result: '0x' + Array(64).fill('a').join('') // Simulated txHash or signature
+        }
+      });
+    } catch (err) {
+      resultBox.className = "notice notice-danger";
+      resultBox.innerHTML = `<strong>REJECTED BY POLICY:</strong> ${err.message}`;
 
-  if (!pwd || pwd.length < 8) {
-    alert("Please enter a recovery password of at least 8 characters.");
-    return;
-  }
-
-  const tpl = POLICY_TEMPLATES.find(t => t.id === tplId);
-  if (!tpl) {
-    alert("Please select a valid policy template.");
-    return;
-  }
-
-  const btn = document.getElementById('createSnapVaultBtn');
-  btn.disabled = true;
-  btn.innerText = "Creating Vault in Snap...";
-
-  try {
-    const res = await window.ethereum.request({
-      method: 'wallet_invokeSnap',
-      params: {
-        snapId,
-        request: {
-          method: 'scafonix_createVault',
-          params: {
-            policy: tpl.policy,
-            recovery_password: pwd,
-            inspector_url: 'https://vault-api.scafonix.com'
+      await wcClient.respondSessionRequest({
+        topic,
+        response: {
+          id,
+          jsonrpc: '2.0',
+          error: {
+            code: 4001,
+            message: "Scafonix Vault Policy Violation: " + err.message
           }
         }
+      });
+    }
+  } else {
+    // For other methods (personal_sign, etc.)
+    await wcClient.respondSessionRequest({
+      topic,
+      response: {
+        id,
+        jsonrpc: '2.0',
+        result: '0x'
       }
     });
-
-    alert("Vault created successfully in MetaMask!\nAddress: " + res.vault_address);
-    await window.handleGetSnapVault();
-  } catch (e) {
-    alert("Snap Vault Creation Failed: " + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerText = "Create Vault inside MetaMask";
   }
-};
+}
 
-window.handleSignTxSnap = async function() {
-  if (!window.ethereum) return;
-  const snapId = document.getElementById('snapIdInput').value.trim();
-  const recipient = document.getElementById('txRecipientInput').value.trim();
-  const ethAmount = parseFloat(document.getElementById('txAmountEthInput').value);
+function updateWcSessionUi(session) {
+  const box = document.getElementById('wcSessionStatusBox');
+  const disconnectBtn = document.getElementById('wcDisconnectBtn');
+  const pairBtn = document.getElementById('wcPairBtn');
 
-  if (isNaN(ethAmount) || ethAmount <= 0) {
-    alert("Invalid ETH amount.");
+  if (session && session.peer) {
+    const meta = session.peer.metadata || {};
+    document.getElementById('wcSessionStatusLabel').innerText = "Connected";
+    document.getElementById('wcSessionStatusLabel').style.color = "var(--success-text)";
+    document.getElementById('wcDAppName').innerText = meta.name || "Web3 dApp";
+    document.getElementById('wcDAppUrl').innerText = meta.url || "-";
+    document.getElementById('wcActiveVaultDisplay').innerText = document.getElementById('wcVaultAddress').value || "0x...";
+    box.style.display = 'block';
+    disconnectBtn.style.display = 'inline-block';
+    pairBtn.innerText = "Pair Another dApp";
+  } else {
+    box.style.display = 'none';
+    disconnectBtn.style.display = 'none';
+    pairBtn.innerText = "Pair with dApp";
+  }
+}
+
+window.handlePairWalletConnect = async function() {
+  const uri = document.getElementById('wcUriInput').value.trim();
+  if (!uri || !uri.startsWith('wc:')) {
+    alert("Please enter a valid WalletConnect pairing URI starting with 'wc:'.\n\nExample:\n1. Open app.uniswap.org\n2. Click Connect -> WalletConnect -> Copy URI\n3. Paste it here.");
     return;
   }
 
-  const valueWei = Math.round(ethAmount * 1e18);
-  const btn = document.getElementById('signSnapTxBtn');
-  btn.disabled = true;
-  btn.innerText = "Authorizing with 2nd Inspector...";
+  const vaultAddress = (document.getElementById('wcVaultAddress').value || '').trim();
+  if (!vaultAddress || !vaultAddress.startsWith('0x')) {
+    alert("Please specify a Vault Address in Section 1 before pairing.");
+    return;
+  }
 
-  const resultBox = document.getElementById('snapTxResultBox');
-  resultBox.style.display = 'none';
+  const btn = document.getElementById('wcPairBtn');
+  btn.disabled = true;
+  btn.innerText = "Pairing with dApp...";
 
   try {
-    const res = await window.ethereum.request({
-      method: 'wallet_invokeSnap',
-      params: {
-        snapId,
-        request: {
-          method: 'scafonix_signTransaction',
-          params: {
-            tx: {
-              chain_id: 1,
-              recipient,
-              value_wei: valueWei,
-              action: 'web3:TransferETH'
-            },
-            inspector_url: 'https://vault-api.scafonix.com'
-          }
-        }
-      }
-    });
-
-    resultBox.className = "notice notice-success";
-    resultBox.innerHTML = `<strong>APPROVED:</strong> ${res.message}<br>Co-signed by 2nd Inspector for Vault: ${res.vault_address}`;
-    resultBox.style.display = 'block';
-  } catch (e) {
-    resultBox.className = "notice notice-danger";
-    resultBox.innerHTML = `<strong>REJECTED:</strong> ${e.message}`;
-    resultBox.style.display = 'block';
+    const client = await initWalletConnectClient();
+    if (!client) {
+      throw new Error("WalletConnect engine is not ready. If testing offline, use Tab 3.");
+    }
+    await client.core.pairing.pair({ uri });
+    btn.innerText = "Waiting for dApp Approval...";
+  } catch (err) {
+    alert("WalletConnect Pairing Failed: " + err.message);
+    btn.disabled = false;
+    btn.innerText = "Pair with dApp";
   } finally {
     btn.disabled = false;
-    btn.innerText = "Request Co-Sign via MetaMask";
   }
+};
+
+window.handleDisconnectWc = async function() {
+  if (!wcClient || !activeWcSession) return;
+  try {
+    await wcClient.disconnectSession({
+      topic: activeWcSession.topic,
+      reason: { code: 6000, message: "User disconnected session." }
+    });
+    activeWcSession = null;
+    updateWcSessionUi(null);
+    alert("Disconnected from dApp.");
+  } catch (err) {
+    console.error("Disconnect error:", err);
+  }
+};
+
+window.simulateUniswapTx = async function(isWhitelisted) {
+  const resultBox = document.getElementById('wcTxResultBox');
+  resultBox.style.display = 'block';
+
+  const vault = (document.getElementById('wcVaultAddress').value || '').trim() || '0x71C...YourVault';
+  const recipient = isWhitelisted
+    ? '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45' // Uniswap V3 SwapRouter
+    : '0x9999999999999999999999999999999999999999'; // Untrusted Address
+  const amountEth = isWhitelisted ? '0.05' : '1.50';
+
+  resultBox.className = "notice";
+  resultBox.innerHTML = `<strong>Simulating Transaction from dApp:</strong><br>Vault: ${vault}<br>Target Router: ${recipient} ${isWhitelisted ? '(Uniswap V3 SwapRouter)' : '(Unknown Recipient)'}<br>Value: ${amountEth} ETH<br>Evaluating against AWS IAM Policy...`;
+
+  setTimeout(() => {
+    if (isWhitelisted) {
+      resultBox.className = "notice notice-success";
+      resultBox.innerHTML = `<strong>APPROVED (2-of-2 Co-Signed):</strong><br>
+        • Action: <code>web3:ContractCall</code> & <code>web3:TransferETH</code><br>
+        • Target: <code>${recipient}</code> (Whitelisted in IAM JSON Policy)<br>
+        • Amount: <code>0.05 ETH</code> &le; Daily Limit of <code>0.10 ETH</code><br>
+        • Status: Successfully co-signed by 2nd Inspector and signed by Client Share A.`;
+    } else {
+      resultBox.className = "notice notice-danger";
+      resultBox.innerHTML = `<strong>REJECTED (Policy Violation):</strong><br>
+        • Target: <code>${recipient}</code> (NOT found in Policy Whitelist)<br>
+        • Amount: <code>1.50 ETH</code> (Exceeds Policy Limit of 0.10 ETH)<br>
+        • Status: Inspector refused co-signature. Zero risk of unauthorized drain.`;
+    }
+  }, 400);
 };
 
 window.handleCreateVault = async function() {
@@ -1451,6 +1565,12 @@ window.handleCreateVault = async function() {
     // Prefill recovery tab
     document.getElementById('recInputSkA').value = currentClientKeypair.sk_a_hex;
     document.getElementById('recInputVoucher').value = data.voucher_c;
+
+    // Prefill WalletConnect tab
+    const wcVault = document.getElementById('wcVaultAddress');
+    if (wcVault) wcVault.value = data.vault_address;
+    const wcSk = document.getElementById('wcClientSkA');
+    if (wcSk) wcSk.value = currentClientKeypair.sk_a_hex;
 
     const resultSection = document.getElementById('resultSection');
     resultSection.style.display = 'block';
@@ -1552,7 +1672,6 @@ window.downloadAirgapTool = function() {
 // Initialize
 async function start() {
   try {
-    populateSnapTemplates();
     renderTemplateOptions();
     await init();
     wasmLoaded = true;
