@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>scafonix Vault — Programmable MPC Vault (pEOA)</title>
+  <title>Scafonix Vault — Programmable MPC Vault (pEOA)</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' width='48' height='48'%3E%3Crect width='48' height='48' rx='8' fill='%23111111'/%3E%3Cpath d='M24 10 L36 16 L36 28 C36 34 24 39 24 39 C24 39 12 34 12 28 L12 16 Z' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linejoin='round'/%3E%3Ccircle cx='24' cy='23' r='3' fill='%23ffffff'/%3E%3Cpath d='M24 26 L24 31' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
   <style>
     :root {
       --bg: #ffffff;
@@ -325,9 +326,17 @@
 <div class="container">
   <!-- Utilitarian Header -->
   <header>
-    <div class="title-group">
-      <h1>scafonix Vault</h1>
-      <div class="sub">Programmable MPC Vault (pEOA) • Deterministic Non-Custodial Signer</div>
+    <div class="title-group" style="display: flex; align-items: center; gap: 12px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="36" height="36" style="flex-shrink: 0;" aria-label="Scafonix Logo">
+        <rect width="48" height="48" rx="8" fill="#111111"/>
+        <path d="M24 10 L36 16 L36 28 C36 34 24 39 24 39 C24 39 12 34 12 28 L12 16 Z" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="24" cy="23" r="3" fill="#ffffff"/>
+        <path d="M24 26 L24 31" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <h1 style="margin: 0; line-height: 1.2;">Scafonix Vault</h1>
+        <div class="sub">Programmable MPC Vault (pEOA) • Deterministic Non-Custodial Signer</div>
+      </div>
     </div>
     <div class="header-links">
       <span id="engineStatus">[Engine: Initializing...]</span>
@@ -800,8 +809,14 @@
 
   <!-- Utilitarian Footer -->
   <footer>
-    <div>scafonix Vault • Patent Application KR 10-2026-0134084 • Non-Custodial MPC</div>
-    <div>License: BSL 1.1</div>
+    <div>
+      <strong>Scafonix Vault</strong> • Patent Application KR 10-2026-0134084 • Non-Custodial MPC
+    </div>
+    <div style="display: flex; gap: 14px; align-items: center;">
+      <a href="https://github.com/Scafonix/vault" target="_blank" rel="noopener" style="color: var(--text); text-decoration: underline; font-family: var(--mono); font-size: 0.75rem;">GitHub Repository</a>
+      <span style="color: var(--border);">|</span>
+      <span>License: BSL 1.1</span>
+    </div>
   </footer>
 </div>
 
