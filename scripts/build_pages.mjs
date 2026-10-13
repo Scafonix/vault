@@ -14,6 +14,7 @@ if (!fs.existsSync(docsDir)) {
 // Copy web files to docs/
 fs.cpSync('web/index.html', 'docs/index.html');
 fs.cpSync('web/scafonix-vault-airgap.html', 'docs/scafonix-vault-airgap.html');
+fs.cpSync('web/favicon.svg', 'docs/favicon.svg');
 fs.cpSync('web/pkg', 'docs/pkg', { recursive: true });
 
 // GitHub Pages configuration files

@@ -46,10 +46,18 @@ let appScript = indexHtml.substring(scriptStartIdx + marker.length, scriptEndIdx
 appScript = appScript.replace(/import init, \{[\s\S]*?\} from '\.\/pkg\/scafonix_wasm\.js';/, '');
 appScript = appScript.replace('await init();', 'await initAirgap();');
 
+// Inline favicon.svg as base64 data URI for 100% self-contained offline usage
+const faviconPath = path.resolve('web/favicon.svg');
+if (fs.existsSync(faviconPath)) {
+  const faviconSvg = fs.readFileSync(faviconPath, 'utf8');
+  const faviconB64 = Buffer.from(faviconSvg).toString('base64');
+  indexHtml = indexHtml.replaceAll('./favicon.svg', `data:image/svg+xml;base64,${faviconB64}`);
+}
+
 // Also update title and badge for clarity
 indexHtml = indexHtml.replace(
-  'scafonix Vault — Programmable MPC Vault (pEOA)',
-  'scafonix Vault — Standalone Air-Gap Edition (100% Offline)'
+  'Scafonix Vault — Programmable MPC Vault (pEOA)',
+  'Scafonix Vault — Standalone Air-Gap Edition (100% Offline)'
 );
 
 const standaloneScript = `
