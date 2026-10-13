@@ -1,0 +1,30 @@
+{
+  "version": "0.1.0",
+  "description": "MetaMask Snap for scafonix Vault (pEOA) — Programmable MPC 2-Party Signer",
+  "proposedName": "scafonix Vault",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Scafonix/vault.git"
+  },
+  "source": {
+    "shasum": "hYeIId/OyAOD3UYaBOWNJcCnAbfLTvbmfXBRi3TN3IA=",
+    "location": {
+      "npm": {
+        "filePath": "dist/bundle.js",
+        "iconPath": "images/icon.svg",
+        "packageName": "scafonix-vault-snap",
+        "registry": "https://registry.npmjs.org/"
+      }
+    }
+  },
+  "initialPermissions": {
+    "snap_dialog": {},
+    "snap_manageState": {},
+    "endowment:network-access": {},
+    "endowment:rpc": {
+      "dapps": true
+    }
+  },
+  "platformVersion": "12.1.0",
+  "manifestVersion": "0.1"
+}

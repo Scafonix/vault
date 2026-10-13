@@ -297,6 +297,7 @@
   <!-- Navigation Tabs -->
   <div class="nav-bar">
     <button class="nav-tab active" onclick="switchView('create')">Vault Generator</button>
+    <button class="nav-tab" onclick="switchView('snap')">MetaMask Snap Integration</button>
     <button class="nav-tab" onclick="switchView('recovery')">Disaster Recovery Signer</button>
   </div>
 
@@ -411,11 +412,102 @@
       <div style="margin-top: 8px; display: flex; gap: 8px;">
         <button class="btn btn-secondary btn-sm" onclick="copyText('resultVoucherText', 'Voucher copied')">Copy Voucher</button>
         <button class="btn btn-secondary btn-sm" onclick="downloadBackupJson()">Download Backup JSON</button>
-      </div>
     </div>
   </div>
 
-  <!-- VIEW 2: DISASTER RECOVERY SIGNER -->
+  <!-- VIEW 2: METAMASK SNAP INTEGRATION -->
+  <div id="panelSnap" class="view-panel">
+    <div class="section">
+      <div class="section-header">1. MetaMask Snap — Direct Wallet Integration</div>
+      
+      <div class="notice">
+        Connect your scafonix Vault directly to MetaMask via the official Snap plugin.
+        Your Client Secret Share (sk_A) stays isolated inside MetaMask's encrypted storage,
+        while all transactions are co-signed by the 2nd Inspector (vault-api.scafonix.com) before broadcast.
+      </div>
+
+      <div class="form-row">
+        <label for="snapIdInput">Snap Package Location / Identifier:</label>
+        <input type="text" id="snapIdInput" value="local:http://localhost:8000" placeholder="npm:scafonix-vault-snap or local:http://localhost:8000" style="font-family: var(--mono); font-size: 0.8rem;">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+          For local development, run <code>npm run serve</code> inside <code>snap/</code>. For production, specify <code>npm:scafonix-vault-snap</code>.
+        </div>
+      </div>
+
+      <div style="margin-top: 12px; display: flex; gap: 8px;">
+        <button id="connectSnapBtn" class="btn" onclick="handleConnectSnap()">Connect & Install Snap</button>
+        <button class="btn btn-secondary" onclick="handleGetSnapVault()">Check Active Vault</button>
+      </div>
+
+      <div id="snapStatusBox" style="margin-top: 14px; display: none;">
+        <table class="data-table">
+          <tr>
+            <th>Snap Connection</th>
+            <td id="snapInstalledStatus" style="font-weight: 600; color: var(--success-text);">Connected</td>
+          </tr>
+          <tr>
+            <th>Active Vault Address</th>
+            <td class="mono-cell address-highlight" id="snapVaultAddress">0x...</td>
+          </tr>
+          <tr>
+            <th>Policy Hash (h_p)</th>
+            <td class="mono-cell" id="snapPolicyHash">-</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Step B: Create Vault in Snap -->
+    <div class="section">
+      <div class="section-header">2. Create New Vault inside MetaMask</div>
+      
+      <div class="form-row">
+        <label for="snapPolicySelect">Protection Policy:</label>
+        <select id="snapPolicySelect" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border); font-size: 0.85rem; font-family: var(--sans);">
+          <option value="daily">Daily Spending Limit (0.1 ETH Max per tx)</option>
+          <option value="uniswap">Whitelisted DEX Router (Uniswap V3 Only)</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label for="snapPasswordInput">Emergency Recovery Password:</label>
+        <input type="password" id="snapPasswordInput" placeholder="Password to encrypt Share C voucher">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+          Used to encrypt your offline recovery ticket. Never shared with MetaMask or the server.
+        </div>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <button id="createSnapVaultBtn" class="btn" onclick="handleCreateSnapVault()">Create Vault inside MetaMask</button>
+      </div>
+    </div>
+
+    <!-- Step C: Test Transaction Signing -->
+    <div class="section">
+      <div class="section-header">3. Test Transaction Signing (MetaMask + 2nd Inspector)</div>
+      
+      <div class="form-row">
+        <label for="txRecipientInput">Recipient Address:</label>
+        <input type="text" id="txRecipientInput" value="0x0000000000000000000000000000000000000001" style="font-family: var(--mono); font-size: 0.8rem;">
+      </div>
+
+      <div class="form-row">
+        <label for="txAmountEthInput">Amount (ETH):</label>
+        <input type="text" id="txAmountEthInput" value="0.05">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">
+          Try 0.05 ETH (approved under 0.1 limit) vs 0.5 ETH (rejected by policy).
+        </div>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <button id="signSnapTxBtn" class="btn" onclick="handleSignTxSnap()">Request Co-Sign via MetaMask</button>
+      </div>
+
+      <div id="snapTxResultBox" style="margin-top: 14px; display: none;"></div>
+    </div>
+  </div>
+
+  <!-- VIEW 3: DISASTER RECOVERY SIGNER -->
   <div id="panelRecovery" class="view-panel">
     <div class="section">
       <div class="section-header">Disaster Recovery / Local Emergency Signer</div>
@@ -540,9 +632,163 @@ window.switchView = function(view) {
   if (view === 'create') {
     document.querySelector('.nav-tab:nth-child(1)').classList.add('active');
     document.getElementById('panelCreate').classList.add('active');
-  } else {
+  } else if (view === 'snap') {
     document.querySelector('.nav-tab:nth-child(2)').classList.add('active');
+    document.getElementById('panelSnap').classList.add('active');
+  } else {
+    document.querySelector('.nav-tab:nth-child(3)').classList.add('active');
     document.getElementById('panelRecovery').classList.add('active');
+  }
+};
+
+window.handleConnectSnap = async function() {
+  if (!window.ethereum) {
+    alert("MetaMask is not detected. Please install the MetaMask extension.");
+    return;
+  }
+  const snapId = document.getElementById('snapIdInput').value.trim();
+  const btn = document.getElementById('connectSnapBtn');
+  btn.disabled = true;
+  btn.innerText = "Connecting to MetaMask...";
+
+  try {
+    await window.ethereum.request({
+      method: 'wallet_requestSnaps',
+      params: { [snapId]: {} }
+    });
+    alert("MetaMask Snap installed successfully!");
+    await window.handleGetSnapVault();
+  } catch (e) {
+    alert("Failed to connect Snap: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Connect & Install Snap";
+  }
+};
+
+window.handleGetSnapVault = async function() {
+  if (!window.ethereum) return;
+  const snapId = document.getElementById('snapIdInput').value.trim();
+  try {
+    const vault = await window.ethereum.request({
+      method: 'wallet_invokeSnap',
+      params: {
+        snapId,
+        request: { method: 'scafonix_getVault' }
+      }
+    });
+
+    const box = document.getElementById('snapStatusBox');
+    if (vault && vault.vault_address) {
+      document.getElementById('snapVaultAddress').innerText = vault.vault_address;
+      document.getElementById('snapPolicyHash').innerText = vault.policy_hash;
+      document.getElementById('snapInstalledStatus').innerText = "Active (" + vault.vault_address.substring(0, 8) + "...)";
+      box.style.display = 'block';
+    } else {
+      document.getElementById('snapInstalledStatus').innerText = "Connected (No vault created yet)";
+      document.getElementById('snapVaultAddress').innerText = "None";
+      document.getElementById('snapPolicyHash').innerText = "-";
+      box.style.display = 'block';
+    }
+  } catch (e) {
+    alert("Could not query Snap: " + e.message);
+  }
+};
+
+window.handleCreateSnapVault = async function() {
+  if (!window.ethereum) {
+    alert("MetaMask not found.");
+    return;
+  }
+  const snapId = document.getElementById('snapIdInput').value.trim();
+  const preset = document.getElementById('snapPolicySelect').value;
+  const pwd = document.getElementById('snapPasswordInput').value;
+
+  if (!pwd || pwd.length < 8) {
+    alert("Please enter a recovery password of at least 8 characters.");
+    return;
+  }
+
+  const btn = document.getElementById('createSnapVaultBtn');
+  btn.disabled = true;
+  btn.innerText = "Creating Vault in Snap...";
+
+  try {
+    const policy = PRESET_POLICIES[preset];
+    const res = await window.ethereum.request({
+      method: 'wallet_invokeSnap',
+      params: {
+        snapId,
+        request: {
+          method: 'scafonix_createVault',
+          params: {
+            policy,
+            recovery_password: pwd,
+            inspector_url: 'https://vault-api.scafonix.com'
+          }
+        }
+      }
+    });
+
+    alert("Vault created successfully in MetaMask!\nAddress: " + res.vault_address);
+    await window.handleGetSnapVault();
+  } catch (e) {
+    alert("Snap Vault Creation Failed: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Create Vault inside MetaMask";
+  }
+};
+
+window.handleSignTxSnap = async function() {
+  if (!window.ethereum) return;
+  const snapId = document.getElementById('snapIdInput').value.trim();
+  const recipient = document.getElementById('txRecipientInput').value.trim();
+  const ethAmount = parseFloat(document.getElementById('txAmountEthInput').value);
+
+  if (isNaN(ethAmount) || ethAmount <= 0) {
+    alert("Invalid ETH amount.");
+    return;
+  }
+
+  const valueWei = Math.round(ethAmount * 1e18);
+  const btn = document.getElementById('signSnapTxBtn');
+  btn.disabled = true;
+  btn.innerText = "Authorizing with 2nd Inspector...";
+
+  const resultBox = document.getElementById('snapTxResultBox');
+  resultBox.style.display = 'none';
+
+  try {
+    const res = await window.ethereum.request({
+      method: 'wallet_invokeSnap',
+      params: {
+        snapId,
+        request: {
+          method: 'scafonix_signTransaction',
+          params: {
+            tx: {
+              chain_id: 1,
+              recipient,
+              value_wei: valueWei,
+              action: 'web3:TransferETH'
+            },
+            inspector_url: 'https://vault-api.scafonix.com'
+          }
+        }
+      }
+    });
+
+    resultBox.className = "notice notice-success";
+    resultBox.innerHTML = `<strong>APPROVED:</strong> ${res.message}<br>Co-signed by 2nd Inspector for Vault: ${res.vault_address}`;
+    resultBox.style.display = 'block';
+  } catch (e) {
+    resultBox.className = "notice notice-danger";
+    resultBox.innerHTML = `<strong>REJECTED:</strong> ${e.message}`;
+    resultBox.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Request Co-Sign via MetaMask";
   }
 };
 
